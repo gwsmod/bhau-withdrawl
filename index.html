@@ -776,68 +776,118 @@
             .toast-item { padding: 12px 16px; }
         }
 
-        /* ─── AUTO-REFRESH INDICATOR ─── */
-        .refresh-indicator {
-            display: inline-block;
-            animation: spin 1s linear infinite;
-            margin-left: 6px;
-            font-size: 14px;
-        }
-
-        /* ─── RELOAD OVERLAY ─── */
+        /* ─── FULL PAGE RELOAD OVERLAY ─── */
         .reload-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(10, 14, 26, 0.85);
-            backdrop-filter: blur(10px);
-            z-index: 10000;
+            background: rgba(10, 14, 26, 0.92);
+            backdrop-filter: blur(15px);
+            z-index: 100000;
             display: none;
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            gap: 20px;
+            gap: 25px;
+            animation: fadeIn 0.4s ease;
         }
 
         .reload-overlay.active {
             display: flex;
         }
 
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
         .reload-overlay .reload-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(125, 255, 179, 0.1);
+            width: 70px;
+            height: 70px;
+            border: 4px solid rgba(125, 255, 179, 0.08);
             border-top: 4px solid #7dffb3;
+            border-right: 4px solid #3d5aa0;
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            box-shadow: 0 0 40px rgba(125, 255, 179, 0.1);
+        }
+
+        .reload-overlay .reload-icon {
+            font-size: 50px;
+            animation: pulse-icon 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-icon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
 
         .reload-overlay .reload-text {
             color: #eef2f9;
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 24px;
+            font-weight: 700;
             letter-spacing: 0.5px;
+            text-align: center;
         }
 
         .reload-overlay .reload-text span {
             color: #7dffb3;
+            background: linear-gradient(135deg, #7dffb3, #3d5aa0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .reload-overlay .reload-sub {
             color: #6a7a9a;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 400;
+            text-align: center;
+            animation: pulse-sub 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-sub {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .reload-overlay .reload-progress {
+            width: 200px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .reload-overlay .reload-progress .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #7dffb3, #3d5aa0);
+            border-radius: 10px;
+            animation: progressAnim 1.8s ease-in-out forwards;
+        }
+
+        @keyframes progressAnim {
+            0% { width: 0%; }
+            30% { width: 30%; }
+            60% { width: 65%; }
+            85% { width: 85%; }
+            100% { width: 100%; }
         }
     </style>
 </head>
 <body>
-    <!-- ─── RELOAD OVERLAY ─── -->
+    <!-- ─── FULL PAGE RELOAD OVERLAY ─── -->
     <div id="reloadOverlay" class="reload-overlay">
+        <div class="reload-icon">🔄</div>
         <div class="reload-spinner"></div>
-        <div class="reload-text">🔄 Refreshing <span>Dashboard</span></div>
+        <div class="reload-text">Refreshing <span>Dashboard</span></div>
         <div class="reload-sub">Updating your latest data...</div>
+        <div class="reload-progress">
+            <div class="progress-bar"></div>
+        </div>
     </div>
 
     <!-- ─── TOAST CONTAINER ─── -->
@@ -1040,19 +1090,29 @@
             const withdrawStatus = $('withdrawStatus');
             const selectedCardDisplay = $('selectedCardDisplay');
 
-            // ─── RELOAD OVERLAY ────────────────────────────────
-            function showReloadOverlay(message) {
+            // ─── FULL PAGE RELOAD ─────────────────────────────
+            function showFullPageReload(actionName) {
                 const overlay = reloadOverlay;
                 overlay.classList.add('active');
                 const textEl = overlay.querySelector('.reload-text');
-                if (message) {
-                    textEl.innerHTML = `🔄 ${message}`;
-                }
+                const subEl = overlay.querySelector('.reload-sub');
+                textEl.innerHTML = `🔄 ${actionName}`;
+                subEl.textContent = 'Updating your latest data...';
+                
+                // Reset and restart progress bar
+                const progressBar = overlay.querySelector('.progress-bar');
+                progressBar.style.animation = 'none';
+                setTimeout(() => {
+                    progressBar.style.animation = 'progressAnim 2s ease-in-out forwards';
+                }, 10);
             }
 
-            function hideReloadOverlay() {
+            function hideFullPageReload() {
                 const overlay = reloadOverlay;
                 overlay.classList.remove('active');
+                // Reset progress bar
+                const progressBar = overlay.querySelector('.progress-bar');
+                progressBar.style.animation = 'none';
             }
 
             // ─── CUSTOM TOAST SYSTEM ───────────────────────────
@@ -1099,37 +1159,40 @@
                 return toastId;
             }
 
-            // ─── AUTO REFRESH WITH RELOAD ──────────────────────
-            async function autoRefreshAndReload(actionName, delay) {
+            // ─── AUTO REFRESH WITH FULL PAGE RELOAD ──────────
+            async function autoRefreshWithReload(actionName, actionMsg, delay) {
                 if (state.isRefreshing) return;
                 state.isRefreshing = true;
                 
-                const reloadDelay = delay || 1500;
+                const reloadDelay = delay || 2000;
                 
-                // Show reload overlay
-                showReloadOverlay(`Updating after ${actionName}...`);
+                // Show full page reload overlay
+                showFullPageReload(`Refreshing after ${actionName}...`);
                 
                 try {
-                    // Wait a moment for the server to process
+                    // Wait for server to process
                     await new Promise(resolve => setTimeout(resolve, reloadDelay));
                     
                     // Reload all data
                     await loadAllData();
                     
                     // Hide overlay
-                    hideReloadOverlay();
+                    hideFullPageReload();
                     
-                    // Show success toast
+                    // Show success toast with updated details
+                    const balanceText = state.balance !== null ? `₹${formatNumber(state.balance)}` : '—';
+                    const cardCount = state.cards ? state.cards.length : 0;
+                    
                     showCustomToast(
-                        '✅ Auto-Refreshed',
-                        `Dashboard updated after <span class="highlight">${actionName}</span>`,
+                        '✅ Dashboard Updated',
+                        `${actionMsg}<br>💰 Balance: <span class="highlight">${balanceText}</span> | 🏦 Cards: <span class="highlight">${cardCount}</span>`,
                         'success',
-                        3000
+                        5000
                     );
                     
                 } catch (e) {
                     console.error('Auto refresh error:', e);
-                    hideReloadOverlay();
+                    hideFullPageReload();
                     showCustomToast(
                         '❌ Refresh Failed',
                         'Could not update data. Please try again.',
@@ -1699,13 +1762,13 @@
                 if (state.isRefreshing) return;
                 if (!state.isLoggedIn || !state.token) return;
                 
-                showReloadOverlay('Refreshing Balance...');
+                showFullPageReload('Refreshing Balance...');
                 
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, 1500));
                     await apiGetUserInfo();
                     updateUI();
-                    hideReloadOverlay();
+                    hideFullPageReload();
                     
                     showCustomToast(
                         '💰 Balance Updated',
@@ -1713,12 +1776,12 @@
                         'success'
                     );
                 } catch (e) {
-                    hideReloadOverlay();
+                    hideFullPageReload();
                     showCustomToast('❌ Error', 'Failed to refresh balance', 'error');
                 }
             }
 
-            // ─── Handlers with Auto-Refresh & Reload ───────────
+            // ─── Handlers with Auto-Refresh & Full Reload ──────
             async function handleAddCard() {
                 const name = cardName.value.trim();
                 const number = cardNumber.value.trim().replace(/\s/g, '');
@@ -1747,13 +1810,18 @@
                     showCustomToast(
                         '✅ Card Added',
                         `Bank card for <span class="highlight">${name}</span> added successfully!`,
-                        'success'
+                        'success',
+                        3000
                     );
                     addCardForm.classList.add('hidden');
                     toggleAddCardBtn.textContent = '➕ Add Card';
                     
-                    // ─── AUTO REFRESH & RELOAD ───
-                    await autoRefreshAndReload('Card Addition');
+                    // ─── FULL PAGE RELOAD AFTER ADD CARD ───
+                    await autoRefreshWithReload(
+                        'Card Addition',
+                        `✅ Card added for <span class="highlight">${name}</span>`,
+                        2000
+                    );
                 } else {
                     showCustomToast(
                         '❌ Add Card Failed',
@@ -1774,11 +1842,16 @@
                     showCustomToast(
                         '✅ Card Deleted',
                         `Bank card ID <span class="highlight">${cardId}</span> deleted successfully!`,
-                        'success'
+                        'success',
+                        3000
                     );
                     
-                    // ─── AUTO REFRESH & RELOAD ───
-                    await autoRefreshAndReload('Card Deletion');
+                    // ─── FULL PAGE RELOAD AFTER DELETE CARD ───
+                    await autoRefreshWithReload(
+                        'Card Deletion',
+                        `✅ Card ID <span class="highlight">${cardId}</span> removed`,
+                        2000
+                    );
                 } else {
                     showCustomToast(
                         '❌ Delete Failed',
@@ -1832,13 +1905,18 @@
                 if (result.success) {
                     showCustomToast(
                         '💸 Withdrawal Successful',
-                        `₹<span class="highlight">${amount}</span> has been withdrawn to your bank account!`,
-                        'success'
+                        `₹<span class="highlight">${amount}</span> has been withdrawn!`,
+                        'success',
+                        3000
                     );
                     withdrawAmount.value = '';
                     
-                    // ─── AUTO REFRESH & RELOAD ───
-                    await autoRefreshAndReload('Withdrawal');
+                    // ─── FULL PAGE RELOAD AFTER WITHDRAWAL ───
+                    await autoRefreshWithReload(
+                        'Withdrawal',
+                        `💸 ₹<span class="highlight">${amount}</span> withdrawn successfully`,
+                        2500
+                    );
                 } else {
                     showCustomToast(
                         '❌ Withdrawal Failed',
@@ -1869,9 +1947,15 @@
                 loginBtn.disabled = false;
 
                 if (result.success) {
-                    showReloadOverlay('Loading Dashboard...');
+                    showFullPageReload('Loading Dashboard...');
                     await loadAllData();
-                    hideReloadOverlay();
+                    hideFullPageReload();
+                    
+                    showCustomToast(
+                        '🎉 Welcome',
+                        `Dashboard loaded for <span class="highlight">${phone}</span>`,
+                        'success'
+                    );
                 }
             }
 
@@ -1950,9 +2034,9 @@
                     phoneInput.value = savedPhone;
                     showDebug('🔄 Session restored', 'success');
                     
-                    showReloadOverlay('Restoring Session...');
+                    showFullPageReload('Restoring Session...');
                     loadAllData().then(() => {
-                        hideReloadOverlay();
+                        hideFullPageReload();
                         showCustomToast(
                             '🔄 Session Restored',
                             `Welcome back, <span class="highlight">${savedPhone}</span>!`,
