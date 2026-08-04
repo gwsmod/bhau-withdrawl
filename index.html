@@ -152,7 +152,7 @@
         }
         .info-item .value.balance {
             color: #7dffb3;
-            font-size: 24px;
+            font-size: 28px;
             font-weight: 700;
         }
         .status-badge {
@@ -235,6 +235,11 @@
             font-size: 18px;
             font-weight: 600;
             color: #eef2f9;
+        }
+        .balance-currency {
+            font-size: 16px;
+            color: #8895bb;
+            margin-right: 2px;
         }
     </style>
 </head>
@@ -529,10 +534,11 @@
                                 else if (ud.credit !== undefined && ud.credit !== null) balance = ud.credit;
                                 else if (ud.totalBalance !== undefined && ud.totalBalance !== null) balance = ud.totalBalance;
                                 
-                                // If balance is found, update state
+                                // If balance is found, store it as is (don't round)
                                 if (balance !== null) {
-                                    state.balance = balance;
-                                    return balance;
+                                    // Keep the exact value - don't round
+                                    state.balance = parseFloat(balance);
+                                    return state.balance;
                                 }
                             }
                         }
@@ -617,9 +623,20 @@
                 // Phone
                 userPhoneDisplay.textContent = '📱 +91 ' + state.phone;
 
-                // Balance - show proper balance
+                // Balance - show exact value with decimals
                 if (state.balance !== null && state.balance !== undefined) {
-                    balanceDisplay.textContent = '₹ ' + state.balance;
+                    // Show the exact balance without rounding
+                    let balanceStr = state.balance.toString();
+                    // If it's a whole number, add .00
+                    if (!balanceStr.includes('.')) {
+                        balanceStr = balanceStr + '.00';
+                    }
+                    // Ensure 2 decimal places
+                    const parts = balanceStr.split('.');
+                    if (parts.length === 2 && parts[1].length === 1) {
+                        balanceStr = balanceStr + '0';
+                    }
+                    balanceDisplay.innerHTML = `<span class="balance-currency">₹</span> ${balanceStr}`;
                 } else {
                     balanceDisplay.innerHTML = '<span class="loading-spinner"></span> Loading...';
                 }
