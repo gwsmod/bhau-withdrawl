@@ -109,11 +109,6 @@
             box-shadow: 0 5px 0 #1a0a0a;
             margin-top: 10px;
         }
-        .btn-refresh {
-            background: #2a4a6a;
-            box-shadow: 0 5px 0 #0a1a2a;
-            margin-top: 8px;
-        }
         .hidden {
             display: none !important;
         }
@@ -147,21 +142,6 @@
             color: #8895bb;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .info-item .label .refresh-small {
-            background: #1a2a3a;
-            border: none;
-            color: #5a8aba;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            cursor: pointer;
-        }
-        .info-item .label .refresh-small:hover {
-            background: #2a4a5a;
         }
         .info-item .value {
             font-size: 16px;
@@ -230,6 +210,16 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .phone-display {
+            font-size: 18px;
+            font-weight: 600;
+            color: #eef2f9;
+        }
+        .balance-currency {
+            font-size: 16px;
+            color: #8895bb;
+            margin-right: 2px;
+        }
         .debug-box {
             background: #0a0f1a;
             border: 1px solid #1a2a3a;
@@ -238,7 +228,7 @@
             margin-top: 10px;
             font-size: 11px;
             color: #4a6a8a;
-            max-height: 150px;
+            max-height: 120px;
             overflow: auto;
             font-family: monospace;
         }
@@ -250,16 +240,6 @@
         }
         .debug-box .info {
             color: #5a8aba;
-        }
-        .phone-display {
-            font-size: 18px;
-            font-weight: 600;
-            color: #eef2f9;
-        }
-        .balance-currency {
-            font-size: 16px;
-            color: #8895bb;
-            margin-right: 2px;
         }
         .last-updated {
             font-size: 10px;
@@ -298,16 +278,21 @@
                 
                 <div class="info-grid">
                     <div class="info-item" style="border-left-color: #7dffb3;">
-                        <div class="label">
-                            <span>💰 Balance</span>
-                            <button class="refresh-small" id="refreshBalanceBtn">⟳ Refresh</button>
-                        </div>
+                        <div class="label">💰 Balance</div>
                         <div class="value balance" id="balanceDisplay">—</div>
                         <div class="last-updated" id="lastUpdated">Last updated: —</div>
                     </div>
                     <div class="info-item">
                         <div class="label">🆔 User ID</div>
                         <div class="value" id="userIdDisplay">—</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">📊 Total Withdraw</div>
+                        <div class="value" id="withdrawDisplay">—</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">💰 Total Recharge</div>
+                        <div class="value" id="rechargeDisplay">—</div>
                     </div>
                     <div class="info-item">
                         <div class="label">🏦 Bank Cards</div>
@@ -317,7 +302,6 @@
                     </div>
                 </div>
 
-                <button class="btn btn-refresh" id="refreshAllBtn">🔄 Refresh All Data</button>
                 <button class="btn btn-logout" id="logoutBtn">🚪 Logout</button>
             </div>
         </div>
@@ -337,7 +321,9 @@
                 balance: null,
                 cards: [],
                 isLoggedIn: false,
-                lastUpdate: null
+                lastUpdate: null,
+                withdraw: null,
+                recharge: null
             };
 
             // ─── DOM Refs ──────────────────────────────────────
@@ -348,11 +334,11 @@
             const loginBtn = $('loginBtn');
             const loginStatus = $('loginStatus');
             const logoutBtn = $('logoutBtn');
-            const refreshBalanceBtn = $('refreshBalanceBtn');
-            const refreshAllBtn = $('refreshAllBtn');
             const userPhoneDisplay = $('userPhoneDisplay');
             const balanceDisplay = $('balanceDisplay');
             const userIdDisplay = $('userIdDisplay');
+            const withdrawDisplay = $('withdrawDisplay');
+            const rechargeDisplay = $('rechargeDisplay');
             const cardsDisplay = $('cardsDisplay');
             const debugBox = $('debugBox');
             const lastUpdated = $('lastUpdated');
@@ -463,7 +449,7 @@
                         
                         if (typeof data.data === 'string' && data.data.startsWith('eyJ')) {
                             token = data.data;
-                            showDebug('✅ Token found in data.data (JWT)', 'success');
+                            showDebug('✅ Token found', 'success');
                         } 
                         else if (typeof data.data === 'object' && data.data !== null) {
                             userData = data.data;
@@ -515,7 +501,7 @@
                 }
             }
 
-            async function apiGetBalance() {
+            async function apiGetUserInfo() {
                 if (!state.token) return null;
                 const cfg = getConfig();
                 const visitor = getVisitor();
@@ -524,50 +510,62 @@
                     channel: 'h5',
                     channelId: cfg.channelId,
                     lang: 'en_US',
+                    visitor: visitor,
                     packageId: cfg.packageId,
                     packageInfo: cfg.packageInfo,
-                    versionCode: '999',
-                    visitor: visitor,
                     reqDate: reqDate,
-                    ua: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36'
+                    ua: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36',
+                    versionCode: '999'
                 };
-                const endpoints = [
-                    cfg.base + '/app/user/getBalanceV2?gameType=POST',
-                    cfg.base + '/app/user/info',
-                    cfg.base + '/app/user/getBalance'
-                ];
-                for (const url of endpoints) {
-                    try {
-                        const resp = await fetch(url, {
-                            method: 'POST',
-                            headers: {
-                                'accept': 'application/json',
-                                'content-type': 'application/json',
-                                'token': state.token,
-                                'origin': cfg.origin,
-                                'referer': cfg.referer
-                            },
-                            body: JSON.stringify(payload)
-                        });
-                        if (resp.status === 200) {
-                            const data = await resp.json();
-                            console.log('Balance Response:', data);
-                            if (data.code === 0) {
-                                const ud = data.data || {};
-                                let balance = null;
-                                if (ud.balance !== undefined && ud.balance !== null) balance = ud.balance;
-                                else if (ud.coin !== undefined && ud.coin !== null) balance = ud.coin;
-                                else if (ud.coins !== undefined && ud.coins !== null) balance = ud.coins;
-                                else if (ud.amount !== undefined && ud.amount !== null) balance = ud.amount;
-                                else if (ud.credit !== undefined && ud.credit !== null) balance = ud.credit;
-                                else if (ud.totalBalance !== undefined && ud.totalBalance !== null) balance = ud.totalBalance;
-                                
-                                if (balance !== null) {
-                                    return parseFloat(balance);
-                                }
+                
+                try {
+                    const resp = await fetch(cfg.base + '/app/user/info', {
+                        method: 'POST',
+                        headers: {
+                            'accept': 'application/json',
+                            'content-type': 'application/json',
+                            'token': state.token,
+                            'origin': cfg.origin,
+                            'referer': cfg.referer
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (resp.status === 200) {
+                        const data = await resp.json();
+                        console.log('User Info Response:', data);
+                        
+                        if (data.code === 0 && data.data) {
+                            const ud = data.data;
+                            
+                            // Update state with all user data
+                            state.userData = ud;
+                            
+                            // Balance - use userBalance or totalBalance
+                            if (ud.userBalance !== undefined && ud.userBalance !== null) {
+                                state.balance = parseFloat(ud.userBalance);
+                            } else if (ud.totalBalance !== undefined && ud.totalBalance !== null) {
+                                state.balance = parseFloat(ud.totalBalance);
+                            } else if (ud.balance !== undefined && ud.balance !== null) {
+                                state.balance = parseFloat(ud.balance);
                             }
+                            
+                            // Withdraw
+                            if (ud.withdraw !== undefined && ud.withdraw !== null) {
+                                state.withdraw = parseFloat(ud.withdraw);
+                            }
+                            
+                            // Recharge
+                            if (ud.recharge !== undefined && ud.recharge !== null) {
+                                state.recharge = parseFloat(ud.recharge);
+                            }
+                            
+                            state.lastUpdate = new Date();
+                            return data.data;
                         }
-                    } catch (_) { /* ignore */ }
+                    }
+                } catch (e) {
+                    console.error('Error fetching user info:', e);
                 }
                 return null;
             }
@@ -635,18 +633,9 @@
             }
 
             // ─── UI Update ─────────────────────────────────────
-            function formatBalance(balance) {
-                if (balance === null || balance === undefined) return '—';
-                let str = balance.toString();
-                if (!str.includes('.')) {
-                    str = str + '.00';
-                } else {
-                    const parts = str.split('.');
-                    if (parts[1].length === 1) {
-                        str = str + '0';
-                    }
-                }
-                return str;
+            function formatNumber(num) {
+                if (num === null || num === undefined) return '—';
+                return parseFloat(num).toFixed(2);
             }
 
             function updateUI() {
@@ -664,7 +653,7 @@
 
                 // Balance
                 if (state.balance !== null && state.balance !== undefined) {
-                    balanceDisplay.innerHTML = `<span class="balance-currency">₹</span> ${formatBalance(state.balance)}`;
+                    balanceDisplay.innerHTML = `<span class="balance-currency">₹</span> ${formatNumber(state.balance)}`;
                 } else {
                     balanceDisplay.innerHTML = '<span class="loading-spinner"></span> Loading...';
                 }
@@ -683,15 +672,22 @@
                     else if (state.userData.id) userId = state.userData.id;
                     else if (state.userData.uid) userId = state.userData.uid;
                     else if (state.userData.imUserId) userId = state.userData.imUserId;
-                    else if (state.userData.sub) {
-                        try {
-                            const sub = JSON.parse(state.userData.sub);
-                            if (sub.userId) userId = sub.userId;
-                            else if (sub.imUserId) userId = sub.imUserId;
-                        } catch (e) {}
-                    }
                 }
                 userIdDisplay.textContent = userId;
+
+                // Withdraw
+                if (state.withdraw !== null && state.withdraw !== undefined) {
+                    withdrawDisplay.textContent = '₹ ' + formatNumber(state.withdraw);
+                } else {
+                    withdrawDisplay.textContent = '—';
+                }
+
+                // Recharge
+                if (state.recharge !== null && state.recharge !== undefined) {
+                    rechargeDisplay.textContent = '₹ ' + formatNumber(state.recharge);
+                } else {
+                    rechargeDisplay.textContent = '—';
+                }
 
                 // Cards
                 if (state.cards && state.cards.length > 0) {
@@ -714,34 +710,19 @@
                 }
             }
 
-            async function loadBalance() {
-                if (!state.isLoggedIn || !state.token) return null;
-                const balance = await apiGetBalance();
-                if (balance !== null) {
-                    state.balance = balance;
-                    state.lastUpdate = new Date();
-                }
-                updateUI();
-                return balance;
-            }
-
-            async function loadCards() {
-                if (!state.isLoggedIn || !state.token) return [];
-                const cards = await apiGetCards();
-                if (cards.length > 0) {
-                    state.cards = cards;
-                }
-                updateUI();
-                return cards;
-            }
-
             async function loadAllData() {
                 if (!state.isLoggedIn || !state.token) return;
                 
-                showDebug('🔄 Loading all data...', 'info');
-                await loadBalance();
-                await loadCards();
-                showDebug('✅ Data loaded', 'success');
+                showDebug('🔄 Loading user data...', 'info');
+                
+                // Load user info (this contains balance, withdraw, recharge)
+                await apiGetUserInfo();
+                
+                // Load cards
+                await apiGetCards();
+                
+                updateUI();
+                showDebug('✅ Data loaded successfully!', 'success');
             }
 
             // ─── Event Handlers ──────────────────────────────
@@ -777,6 +758,8 @@
                 state.cards = [];
                 state.isLoggedIn = false;
                 state.lastUpdate = null;
+                state.withdraw = null;
+                state.recharge = null;
                 
                 localStorage.removeItem('bhau_token');
                 localStorage.removeItem('bhau_phone');
@@ -798,7 +781,7 @@
                     state.phone = savedPhone;
                     state.isLoggedIn = true;
                     phoneInput.value = savedPhone;
-                    showDebug('🔄 Session restored from localStorage', 'success');
+                    showDebug('🔄 Session restored', 'success');
                     loadAllData();
                     return true;
                 }
@@ -809,23 +792,6 @@
             function init() {
                 loginBtn.addEventListener('click', handleLogin);
                 logoutBtn.addEventListener('click', handleLogout);
-                refreshBalanceBtn.addEventListener('click', function() {
-                    if (state.isLoggedIn && state.token) {
-                        showDebug('🔄 Refreshing balance...', 'info');
-                        loadBalance().then(balance => {
-                            if (balance !== null) {
-                                showToast(loginStatus, '✅ Balance updated: ₹' + formatBalance(balance), 'success');
-                            }
-                        });
-                    }
-                });
-                refreshAllBtn.addEventListener('click', function() {
-                    if (state.isLoggedIn && state.token) {
-                        loadAllData().then(() => {
-                            showToast(loginStatus, '✅ All data refreshed!', 'success');
-                        });
-                    }
-                });
 
                 phoneInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') handleLogin();
