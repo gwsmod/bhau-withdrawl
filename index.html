@@ -775,6 +775,18 @@
             .toast-container { right: 10px; left: 10px; width: auto; top: 10px; }
             .toast-item { padding: 12px 16px; }
         }
+
+        /* ─── AUTO-REFRESH INDICATOR ─── */
+        .refresh-indicator {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+            margin-left: 6px;
+            font-size: 14px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -822,7 +834,10 @@
                     <div class="info-item balance-item">
                         <div class="label">
                             <span>💰 Wallet Balance</span>
-                            <button class="toggle-form-btn" id="refreshBalanceBtn">⟳ Refresh</button>
+                            <div>
+                                <span id="refreshStatus" style="font-size:10px;color:#4a5a7a;margin-right:8px;"></span>
+                                <button class="toggle-form-btn" id="refreshBalanceBtn">⟳ Refresh</button>
+                            </div>
                         </div>
                         <div class="value balance" id="balanceDisplay">
                             <span class="currency">₹</span> —
@@ -930,7 +945,8 @@
                 isLoggedIn: false,
                 lastUpdate: null,
                 withdraw: null,
-                recharge: null
+                recharge: null,
+                isRefreshing: false
             };
 
             // ─── DOM Refs ──────────────────────────────────────
@@ -950,6 +966,7 @@
             const debugBox = $('debugBox');
             const lastUpdated = $('lastUpdated');
             const refreshBalanceBtn = $('refreshBalanceBtn');
+            const refreshStatus = $('refreshStatus');
             const toastContainer = $('toastContainer');
 
             // Add Card
@@ -1002,7 +1019,6 @@
 
                 toastContainer.appendChild(toast);
 
-                // Auto remove after duration
                 const autoHide = duration || 8000;
                 setTimeout(() => {
                     const el = document.getElementById(toastId);
@@ -1015,6 +1031,36 @@
                 }, autoHide);
 
                 return toastId;
+            }
+
+            // ─── AUTO REFRESH FUNCTION ─────────────────────────
+            function setRefreshing(isRefreshing) {
+                state.isRefreshing = isRefreshing;
+                if (isRefreshing) {
+                    refreshStatus.innerHTML = '⟳ Refreshing...';
+                    refreshStatus.style.color = '#7dffb3';
+                } else {
+                    refreshStatus.innerHTML = '';
+                }
+            }
+
+            async function autoRefreshData(actionName) {
+                if (state.isRefreshing) return;
+                setRefreshing(true);
+                
+                try {
+                    await loadAllData();
+                    showCustomToast(
+                        '🔄 Auto Refreshed',
+                        `Data updated after <span class="highlight">${actionName}</span>`,
+                        'success',
+                        3000
+                    );
+                } catch (e) {
+                    console.error('Auto refresh error:', e);
+                } finally {
+                    setRefreshing(false);
+                }
             }
 
             // ─── Config ─────────────────────────────────────────
@@ -1142,7 +1188,6 @@
 
                             showDebug('✅ Login successful!', 'success');
                             
-                            // ─── CUSTOM TOAST: LOGIN SUCCESS ───
                             showCustomToast(
                                 '🎉 Login Successful',
                                 `Welcome back! <span class="highlight">${phone}</span> is now connected.`,
@@ -1152,40 +1197,31 @@
                             return { success: true, token: token };
                         } else {
                             showDebug('❌ Token not found', 'error');
-                            
-                            // ─── CUSTOM TOAST: LOGIN ERROR ───
                             showCustomToast(
                                 '❌ Login Failed',
                                 'Token not found in response. Please try again.',
                                 'error'
                             );
-                            
                             return { success: false, msg: 'Token not found in response' };
                         }
                     } else {
                         const errorMsg = data.msg || data.message || 'Login failed';
                         showDebug(`❌ ${errorMsg}`, 'error');
-                        
-                        // ─── CUSTOM TOAST: LOGIN ERROR ───
                         showCustomToast(
                             '❌ Login Failed',
                             `${errorMsg}. Please check your credentials.`,
                             'error'
                         );
-                        
                         return { success: false, msg: errorMsg };
                     }
                 } catch (e) {
                     console.error('Login error:', e);
                     showDebug(`❌ Error: ${e.message}`, 'error');
-                    
-                    // ─── CUSTOM TOAST: NETWORK ERROR ───
                     showCustomToast(
                         '🌐 Network Error',
                         `Unable to connect: ${e.message}. Please check your internet.`,
                         'error'
                     );
-                    
                     return { success: false, msg: e.message || 'Network error' };
                 }
             }
@@ -1583,12 +1619,15 @@
             }
 
             async function refreshBalance() {
+                if (state.isRefreshing) return;
                 if (!state.isLoggedIn || !state.token) return;
+                
+                setRefreshing(true);
                 showDebug('🔄 Refreshing balance...', 'info');
                 await apiGetUserInfo();
                 updateUI();
+                setRefreshing(false);
                 
-                // ─── CUSTOM TOAST: BALANCE REFRESH ───
                 showCustomToast(
                     '💰 Balance Updated',
                     `Your current balance is <span class="highlight">₹${formatNumber(state.balance)}</span>`,
@@ -1596,7 +1635,7 @@
                 );
             }
 
-            // ─── Handlers ──────────────────────────────────────
+            // ─── Handlers with Auto-Refresh ────────────────────
             async function handleAddCard() {
                 const name = cardName.value.trim();
                 const number = cardNumber.value.trim().replace(/\s/g, '');
@@ -1612,6 +1651,7 @@
                     return;
                 }
 
+                if (state.isRefreshing) return;
                 submitCardBtn.textContent = '⏳ Adding...';
                 submitCardBtn.disabled = true;
 
@@ -1628,7 +1668,8 @@
                     );
                     addCardForm.classList.add('hidden');
                     toggleAddCardBtn.textContent = '➕ Add Card';
-                    await loadAllData();
+                    // ─── AUTO REFRESH AFTER ADD CARD ───
+                    await autoRefreshData('Card Addition');
                 } else {
                     showCustomToast(
                         '❌ Add Card Failed',
@@ -1640,6 +1681,8 @@
 
             async function handleDeleteCard(cardId) {
                 if (!confirm(`⚠️ Are you sure you want to delete card ID: ${cardId}?`)) return;
+                if (state.isRefreshing) return;
+                
                 showDebug(`🗑️ Deleting ${cardId}...`, 'info');
                 const result = await apiDeleteCard(cardId);
 
@@ -1649,7 +1692,8 @@
                         `Bank card ID <span class="highlight">${cardId}</span> deleted successfully!`,
                         'success'
                     );
-                    await loadAllData();
+                    // ─── AUTO REFRESH AFTER DELETE CARD ───
+                    await autoRefreshData('Card Deletion');
                 } else {
                     showCustomToast(
                         '❌ Delete Failed',
@@ -1691,6 +1735,7 @@
                     return;
                 }
 
+                if (state.isRefreshing) return;
                 submitWithdrawBtn.textContent = '⏳ Processing...';
                 submitWithdrawBtn.disabled = true;
 
@@ -1700,14 +1745,14 @@
                 submitWithdrawBtn.disabled = false;
 
                 if (result.success) {
-                    // ─── CUSTOM TOAST: WITHDRAWAL SUCCESS ───
                     showCustomToast(
                         '💸 Withdrawal Successful',
                         `₹<span class="highlight">${amount}</span> has been withdrawn to your bank account!`,
                         'success'
                     );
-                    await loadAllData();
                     withdrawAmount.value = '';
+                    // ─── AUTO REFRESH AFTER WITHDRAWAL ───
+                    await autoRefreshData('Withdrawal');
                 } else {
                     showCustomToast(
                         '❌ Withdrawal Failed',
@@ -1728,6 +1773,7 @@
                     return;
                 }
                 
+                if (state.isRefreshing) return;
                 loginBtn.textContent = '⏳ Logging in...';
                 loginBtn.disabled = true;
 
@@ -1742,6 +1788,8 @@
             }
 
             function handleLogout() {
+                if (state.isRefreshing) return;
+                
                 state.token = null;
                 state.phone = null;
                 state.userData = null;
