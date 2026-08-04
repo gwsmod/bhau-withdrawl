@@ -197,10 +197,13 @@
             font-size: 15px;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            width: 100%;
             text-align: center;
             position: relative;
             overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         .btn::before {
@@ -301,6 +304,27 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none !important;
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        /* ─── FORM ROW ─── */
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .form-row .btn {
+            flex: 1;
+            padding: 14px 16px;
+        }
+
+        .form-row .btn-outline {
+            flex: 0.5;
+            min-width: 100px;
         }
 
         /* ─── QUICK AMOUNT ─── */
@@ -629,6 +653,8 @@
             .container { padding: 20px 16px 24px; }
             .header h1 { font-size: 28px; }
             .info-item .value.balance { font-size: 24px; }
+            .form-row { flex-direction: column; }
+            .form-row .btn-outline { flex: 1; min-width: auto; }
         }
     </style>
 </head>
@@ -652,7 +678,7 @@
                     <label>📱 Phone Number</label>
                     <input type="tel" id="phoneInput" placeholder="Enter 10-digit number" maxlength="10" inputmode="numeric" />
                 </div>
-                <button class="btn btn-primary" id="loginBtn">🔑 Login to Dashboard</button>
+                <button class="btn btn-primary btn-full" id="loginBtn">🔑 Login to Dashboard</button>
                 <div id="loginStatus" class="toast hidden"></div>
                 <div id="debugBox" class="debug-box hidden"></div>
             </div>
@@ -714,9 +740,9 @@
                     <div class="input-group"><label>💳 Account Number</label><input id="cardNumber" placeholder="1234567890" /></div>
                     <div class="input-group"><label>🏛️ IFSC Code</label><input id="ifscCode" placeholder="MAHB0002009" value="MAHB0002009" /></div>
                     <div class="input-group"><label>📧 Email (optional)</label><input id="cardEmail" placeholder="email@gmail.com" /></div>
-                    <div style="display:flex;gap:8px;">
+                    <div class="form-row">
                         <button class="btn btn-success" id="submitCardBtn">✅ Add Card</button>
-                        <button class="btn btn-outline" id="cancelAddCard" style="flex:0.5;">Cancel</button>
+                        <button class="btn btn-outline" id="cancelAddCard">✖ Cancel</button>
                     </div>
                     <div id="addCardStatus" class="toast hidden mt-2"></div>
                 </div>
@@ -755,13 +781,13 @@
                                 <button class="btn-sm quick-amount" data-amount="5000">₹5000</button>
                             </div>
 
-                            <button class="btn btn-withdraw" id="submitWithdrawBtn">💸 Withdraw Now</button>
+                            <button class="btn btn-withdraw btn-full" id="submitWithdrawBtn">💸 Withdraw Now</button>
                             <div id="withdrawStatus" class="toast hidden mt-2"></div>
                         </div>
                     </div>
                 </div>
 
-                <button class="btn btn-logout" id="logoutBtn" style="margin-top:14px;">🚪 Logout</button>
+                <button class="btn btn-logout btn-full" id="logoutBtn" style="margin-top:14px;">🚪 Logout</button>
             </div>
         </div>
 
