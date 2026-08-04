@@ -152,7 +152,8 @@
         }
         .info-item .value.balance {
             color: #7dffb3;
-            font-size: 20px;
+            font-size: 24px;
+            font-weight: 700;
         }
         .status-badge {
             display: inline-block;
@@ -187,9 +188,14 @@
             color: #ffd700;
         }
         .bank-card .details {
-            font-size: 13px;
-            color: #8895bb;
+            font-size: 14px;
+            color: #c6d2f0;
             margin-top: 4px;
+        }
+        .bank-card .ifsc {
+            font-size: 12px;
+            color: #8895bb;
+            margin-top: 2px;
         }
         .loading-spinner {
             display: inline-block;
@@ -225,6 +231,11 @@
         .debug-box .info {
             color: #5a8aba;
         }
+        .phone-display {
+            font-size: 18px;
+            font-weight: 600;
+            color: #eef2f9;
+        }
     </style>
 </head>
 <body>
@@ -252,21 +263,17 @@
             <div class="card" style="border-color: #3aad6a;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                     <span class="status-badge online">● Online</span>
-                    <span style="color:#8895bb;font-size:12px;" id="userPhoneDisplay">📱 +91</span>
+                    <span class="phone-display" id="userPhoneDisplay">📱 +91</span>
                 </div>
                 
                 <div class="info-grid">
-                    <div class="info-item">
+                    <div class="info-item" style="border-left-color: #7dffb3;">
                         <div class="label">💰 Balance</div>
                         <div class="value balance" id="balanceDisplay">—</div>
                     </div>
                     <div class="info-item">
-                        <div class="label">👤 User ID</div>
+                        <div class="label">🆔 User ID</div>
                         <div class="value" id="userIdDisplay">—</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="label">📧 Email</div>
-                        <div class="value" id="emailDisplay">—</div>
                     </div>
                     <div class="info-item">
                         <div class="label">🏦 Bank Cards</div>
@@ -308,7 +315,6 @@
             const userPhoneDisplay = $('userPhoneDisplay');
             const balanceDisplay = $('balanceDisplay');
             const userIdDisplay = $('userIdDisplay');
-            const emailDisplay = $('emailDisplay');
             const cardsDisplay = $('cardsDisplay');
             const debugBox = $('debugBox');
 
@@ -411,51 +417,46 @@
                     
                     console.log('Login Response:', data);
                     
-                    // Check if login was successful
                     if (resp.status === 200 && (data.code === 0 || data.success === true)) {
                         
-                        // 🔥 CRITICAL FIX: Token is directly in data.data as a string
                         let token = null;
+                        let userData = null;
                         
-                        // Check if data.data is a string (JWT token)
+                        // Token is directly in data.data as a string
                         if (typeof data.data === 'string' && data.data.startsWith('eyJ')) {
                             token = data.data;
-                            showDebug('✅ Token found in data.data (JWT string)', 'success');
+                            showDebug('✅ Token found in data.data (JWT)', 'success');
                         } 
-                        // Check if data.data is an object with token
+                        // Check if data.data is an object
                         else if (typeof data.data === 'object' && data.data !== null) {
+                            userData = data.data;
                             if (data.data.accessToken) token = data.data.accessToken;
                             else if (data.data.token) token = data.data.token;
-                            else if (data.data.authToken) token = data.data.authToken;
                         }
-                        // Check in main data object
+                        // Check in main data
                         else if (data.accessToken) token = data.accessToken;
                         else if (data.token) token = data.token;
-                        else if (data.authToken) token = data.authToken;
-                        
-                        // Also try to parse if data.data is a JSON string
-                        if (!token && typeof data.data === 'string') {
-                            try {
-                                const parsed = JSON.parse(data.data);
-                                if (parsed.accessToken) token = parsed.accessToken;
-                                else if (parsed.token) token = parsed.token;
-                            } catch (e) {
-                                // Not JSON, that's fine
-                            }
-                        }
-                        
-                        showDebug(`🔑 Token: ${token ? token.substring(0, 30) + '...' : '❌ Not found'}`, token ? 'success' : 'error');
                         
                         if (token) {
                             state.token = token;
                             state.phone = phone;
                             state.isLoggedIn = true;
                             
-                            // Store user data if available
-                            if (typeof data.data === 'object' && data.data !== null) {
-                                state.userData = data.data;
-                            } else {
-                                state.userData = { phone: phone };
+                            // Try to get user data from response
+                            if (userData) {
+                                state.userData = userData;
+                            } else if (typeof data.data === 'string') {
+                                // Try to parse JWT to get user info
+                                try {
+                                    const parts = token.split('.');
+                                    if (parts.length === 3) {
+                                        const payload = JSON.parse(atob(parts[1]));
+                                        console.log('JWT Payload:', payload);
+                                        state.userData = payload;
+                                    }
+                                } catch (e) {
+                                    console.log('Could not parse JWT');
+                                }
                             }
                             
                             localStorage.setItem('bhau_token', token);
@@ -465,9 +466,8 @@
                             showDebug('✅ Login successful!', 'success');
                             return { success: true, token: token };
                         } else {
-                            showDebug('❌ Token not found in response', 'error');
-                            showDebug(`🔍 Full response: ${JSON.stringify(data).substring(0, 500)}`, 'error');
-                            return { success: false, msg: 'Token not found in response' };
+                            showDebug('❌ Token not found', 'error');
+                            return { success: false, msg: 'Token not found' };
                         }
                     } else {
                         const errorMsg = data.msg || data.message || 'Login failed';
@@ -517,10 +517,20 @@
                         });
                         if (resp.status === 200) {
                             const data = await resp.json();
+                            console.log('Balance Response:', data);
                             if (data.code === 0) {
                                 const ud = data.data || {};
-                                const balance = ud.balance ?? ud.coin ?? ud.coins ?? ud.amount ?? ud.credit ?? ud.totalBalance ?? null;
-                                if (balance !== null && balance !== undefined) {
+                                // Try to find balance in various fields
+                                let balance = null;
+                                if (ud.balance !== undefined && ud.balance !== null) balance = ud.balance;
+                                else if (ud.coin !== undefined && ud.coin !== null) balance = ud.coin;
+                                else if (ud.coins !== undefined && ud.coins !== null) balance = ud.coins;
+                                else if (ud.amount !== undefined && ud.amount !== null) balance = ud.amount;
+                                else if (ud.credit !== undefined && ud.credit !== null) balance = ud.credit;
+                                else if (ud.totalBalance !== undefined && ud.totalBalance !== null) balance = ud.totalBalance;
+                                
+                                // If balance is found, update state
+                                if (balance !== null) {
                                     state.balance = balance;
                                     return balance;
                                 }
@@ -568,6 +578,7 @@
                         });
                         if (resp.status === 200) {
                             const data = await resp.json();
+                            console.log('Cards Response:', data);
                             if (data.code === 0) {
                                 let cards = data.data;
                                 if (Array.isArray(cards) && cards.length > 0) {
@@ -606,44 +617,44 @@
                 // Phone
                 userPhoneDisplay.textContent = '📱 +91 ' + state.phone;
 
-                // Balance
-                if (state.balance !== null) {
+                // Balance - show proper balance
+                if (state.balance !== null && state.balance !== undefined) {
                     balanceDisplay.textContent = '₹ ' + state.balance;
                 } else {
                     balanceDisplay.innerHTML = '<span class="loading-spinner"></span> Loading...';
                 }
 
-                // User ID - try to get from userData
+                // User ID - get from JWT payload or userData
                 let userId = '—';
                 if (state.userData) {
                     if (state.userData.userId) userId = state.userData.userId;
                     else if (state.userData.id) userId = state.userData.id;
                     else if (state.userData.uid) userId = state.userData.uid;
                     else if (state.userData.imUserId) userId = state.userData.imUserId;
+                    else if (state.userData.sub) {
+                        // Try to parse sub from JWT
+                        try {
+                            const sub = JSON.parse(state.userData.sub);
+                            if (sub.userId) userId = sub.userId;
+                            else if (sub.imUserId) userId = sub.imUserId;
+                        } catch (e) {}
+                    }
                 }
                 userIdDisplay.textContent = userId;
 
-                // Email
-                let email = '—';
-                if (state.userData) {
-                    if (state.userData.email) email = state.userData.email;
-                    else if (state.userData.userEmail) email = state.userData.userEmail;
-                }
-                emailDisplay.textContent = email;
-
-                // Cards
+                // Cards - show full account number without masking
                 if (state.cards && state.cards.length > 0) {
                     let html = '';
                     state.cards.forEach(function(c) {
                         const holder = c.accountName || c.holderName || c.name || 'Unknown';
-                        const bank = c.bankName || c.bank || '';
+                        const bank = c.bankName || c.bank || 'Bank';
                         const acc = c.accountNumber || c.cardNumber || c.cardNo || '';
-                        const masked = acc && acc.length > 6 ? acc.slice(0, 4) + '****' + acc.slice(-4) : acc;
                         const ifsc = c.ifscCode || c.ifsCode || '—';
                         html += `<div class="bank-card">
-                            <div class="bank-name">${bank || 'Bank'}</div>
-                            <div class="details">${holder} • ${masked}</div>
-                            <div class="details" style="font-size:11px;">IFSC: ${ifsc}</div>
+                            <div class="bank-name">🏦 ${bank}</div>
+                            <div class="details">👤 ${holder}</div>
+                            <div class="details">💳 ${acc || 'N/A'}</div>
+                            <div class="ifsc">🔑 IFSC: ${ifsc}</div>
                         </div>`;
                     });
                     cardsDisplay.innerHTML = html;
