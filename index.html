@@ -109,6 +109,11 @@
             box-shadow: 0 5px 0 #1a0a0a;
             margin-top: 10px;
         }
+        .btn-refresh {
+            background: #2a4a6a;
+            box-shadow: 0 5px 0 #0a1a2a;
+            margin-top: 8px;
+        }
         .hidden {
             display: none !important;
         }
@@ -142,6 +147,21 @@
             color: #8895bb;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .info-item .label .refresh-small {
+            background: #1a2a3a;
+            border: none;
+            color: #5a8aba;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        .info-item .label .refresh-small:hover {
+            background: #2a4a5a;
         }
         .info-item .value {
             font-size: 16px;
@@ -241,6 +261,11 @@
             color: #8895bb;
             margin-right: 2px;
         }
+        .last-updated {
+            font-size: 10px;
+            color: #4a5a7a;
+            margin-top: 2px;
+        }
     </style>
 </head>
 <body>
@@ -273,8 +298,12 @@
                 
                 <div class="info-grid">
                     <div class="info-item" style="border-left-color: #7dffb3;">
-                        <div class="label">💰 Balance</div>
+                        <div class="label">
+                            <span>💰 Balance</span>
+                            <button class="refresh-small" id="refreshBalanceBtn">⟳ Refresh</button>
+                        </div>
                         <div class="value balance" id="balanceDisplay">—</div>
+                        <div class="last-updated" id="lastUpdated">Last updated: —</div>
                     </div>
                     <div class="info-item">
                         <div class="label">🆔 User ID</div>
@@ -288,6 +317,7 @@
                     </div>
                 </div>
 
+                <button class="btn btn-refresh" id="refreshAllBtn">🔄 Refresh All Data</button>
                 <button class="btn btn-logout" id="logoutBtn">🚪 Logout</button>
             </div>
         </div>
@@ -306,7 +336,8 @@
                 userData: null,
                 balance: null,
                 cards: [],
-                isLoggedIn: false
+                isLoggedIn: false,
+                lastUpdate: null
             };
 
             // ─── DOM Refs ──────────────────────────────────────
@@ -317,11 +348,14 @@
             const loginBtn = $('loginBtn');
             const loginStatus = $('loginStatus');
             const logoutBtn = $('logoutBtn');
+            const refreshBalanceBtn = $('refreshBalanceBtn');
+            const refreshAllBtn = $('refreshAllBtn');
             const userPhoneDisplay = $('userPhoneDisplay');
             const balanceDisplay = $('balanceDisplay');
             const userIdDisplay = $('userIdDisplay');
             const cardsDisplay = $('cardsDisplay');
             const debugBox = $('debugBox');
+            const lastUpdated = $('lastUpdated');
 
             // ─── Config ─────────────────────────────────────────
             function getConfig() {
@@ -427,18 +461,15 @@
                         let token = null;
                         let userData = null;
                         
-                        // Token is directly in data.data as a string
                         if (typeof data.data === 'string' && data.data.startsWith('eyJ')) {
                             token = data.data;
                             showDebug('✅ Token found in data.data (JWT)', 'success');
                         } 
-                        // Check if data.data is an object
                         else if (typeof data.data === 'object' && data.data !== null) {
                             userData = data.data;
                             if (data.data.accessToken) token = data.data.accessToken;
                             else if (data.data.token) token = data.data.token;
                         }
-                        // Check in main data
                         else if (data.accessToken) token = data.accessToken;
                         else if (data.token) token = data.token;
                         
@@ -447,11 +478,9 @@
                             state.phone = phone;
                             state.isLoggedIn = true;
                             
-                            // Try to get user data from response
                             if (userData) {
                                 state.userData = userData;
                             } else if (typeof data.data === 'string') {
-                                // Try to parse JWT to get user info
                                 try {
                                     const parts = token.split('.');
                                     if (parts.length === 3) {
@@ -525,7 +554,6 @@
                             console.log('Balance Response:', data);
                             if (data.code === 0) {
                                 const ud = data.data || {};
-                                // Try to find balance in various fields
                                 let balance = null;
                                 if (ud.balance !== undefined && ud.balance !== null) balance = ud.balance;
                                 else if (ud.coin !== undefined && ud.coin !== null) balance = ud.coin;
@@ -534,11 +562,8 @@
                                 else if (ud.credit !== undefined && ud.credit !== null) balance = ud.credit;
                                 else if (ud.totalBalance !== undefined && ud.totalBalance !== null) balance = ud.totalBalance;
                                 
-                                // If balance is found, store it as is (don't round)
                                 if (balance !== null) {
-                                    // Keep the exact value - don't round
-                                    state.balance = parseFloat(balance);
-                                    return state.balance;
+                                    return parseFloat(balance);
                                 }
                             }
                         }
@@ -610,6 +635,20 @@
             }
 
             // ─── UI Update ─────────────────────────────────────
+            function formatBalance(balance) {
+                if (balance === null || balance === undefined) return '—';
+                let str = balance.toString();
+                if (!str.includes('.')) {
+                    str = str + '.00';
+                } else {
+                    const parts = str.split('.');
+                    if (parts[1].length === 1) {
+                        str = str + '0';
+                    }
+                }
+                return str;
+            }
+
             function updateUI() {
                 if (!state.isLoggedIn || !state.token) {
                     loginSection.classList.remove('hidden');
@@ -623,25 +662,21 @@
                 // Phone
                 userPhoneDisplay.textContent = '📱 +91 ' + state.phone;
 
-                // Balance - show exact value with decimals
+                // Balance
                 if (state.balance !== null && state.balance !== undefined) {
-                    // Show the exact balance without rounding
-                    let balanceStr = state.balance.toString();
-                    // If it's a whole number, add .00
-                    if (!balanceStr.includes('.')) {
-                        balanceStr = balanceStr + '.00';
-                    }
-                    // Ensure 2 decimal places
-                    const parts = balanceStr.split('.');
-                    if (parts.length === 2 && parts[1].length === 1) {
-                        balanceStr = balanceStr + '0';
-                    }
-                    balanceDisplay.innerHTML = `<span class="balance-currency">₹</span> ${balanceStr}`;
+                    balanceDisplay.innerHTML = `<span class="balance-currency">₹</span> ${formatBalance(state.balance)}`;
                 } else {
                     balanceDisplay.innerHTML = '<span class="loading-spinner"></span> Loading...';
                 }
 
-                // User ID - get from JWT payload or userData
+                // Last updated
+                if (state.lastUpdate) {
+                    lastUpdated.textContent = 'Last updated: ' + state.lastUpdate.toLocaleTimeString();
+                } else {
+                    lastUpdated.textContent = 'Last updated: —';
+                }
+
+                // User ID
                 let userId = '—';
                 if (state.userData) {
                     if (state.userData.userId) userId = state.userData.userId;
@@ -649,7 +684,6 @@
                     else if (state.userData.uid) userId = state.userData.uid;
                     else if (state.userData.imUserId) userId = state.userData.imUserId;
                     else if (state.userData.sub) {
-                        // Try to parse sub from JWT
                         try {
                             const sub = JSON.parse(state.userData.sub);
                             if (sub.userId) userId = sub.userId;
@@ -659,7 +693,7 @@
                 }
                 userIdDisplay.textContent = userId;
 
-                // Cards - show full account number without masking
+                // Cards
                 if (state.cards && state.cards.length > 0) {
                     let html = '';
                     state.cards.forEach(function(c) {
@@ -680,22 +714,34 @@
                 }
             }
 
-            async function loadUserData() {
-                if (!state.isLoggedIn || !state.token) return;
-
-                // Load balance
+            async function loadBalance() {
+                if (!state.isLoggedIn || !state.token) return null;
                 const balance = await apiGetBalance();
                 if (balance !== null) {
                     state.balance = balance;
+                    state.lastUpdate = new Date();
                 }
                 updateUI();
+                return balance;
+            }
 
-                // Load cards
+            async function loadCards() {
+                if (!state.isLoggedIn || !state.token) return [];
                 const cards = await apiGetCards();
                 if (cards.length > 0) {
                     state.cards = cards;
                 }
                 updateUI();
+                return cards;
+            }
+
+            async function loadAllData() {
+                if (!state.isLoggedIn || !state.token) return;
+                
+                showDebug('🔄 Loading all data...', 'info');
+                await loadBalance();
+                await loadCards();
+                showDebug('✅ Data loaded', 'success');
             }
 
             // ─── Event Handlers ──────────────────────────────
@@ -717,7 +763,7 @@
 
                 if (result.success) {
                     showToast(loginStatus, '✅ Login successful!', 'success');
-                    await loadUserData();
+                    await loadAllData();
                 } else {
                     showToast(loginStatus, '❌ ' + (result.msg || 'Login failed'), 'error');
                 }
@@ -730,6 +776,7 @@
                 state.balance = null;
                 state.cards = [];
                 state.isLoggedIn = false;
+                state.lastUpdate = null;
                 
                 localStorage.removeItem('bhau_token');
                 localStorage.removeItem('bhau_phone');
@@ -752,7 +799,7 @@
                     state.isLoggedIn = true;
                     phoneInput.value = savedPhone;
                     showDebug('🔄 Session restored from localStorage', 'success');
-                    loadUserData();
+                    loadAllData();
                     return true;
                 }
                 return false;
@@ -762,6 +809,23 @@
             function init() {
                 loginBtn.addEventListener('click', handleLogin);
                 logoutBtn.addEventListener('click', handleLogout);
+                refreshBalanceBtn.addEventListener('click', function() {
+                    if (state.isLoggedIn && state.token) {
+                        showDebug('🔄 Refreshing balance...', 'info');
+                        loadBalance().then(balance => {
+                            if (balance !== null) {
+                                showToast(loginStatus, '✅ Balance updated: ₹' + formatBalance(balance), 'success');
+                            }
+                        });
+                    }
+                });
+                refreshAllBtn.addEventListener('click', function() {
+                    if (state.isLoggedIn && state.token) {
+                        loadAllData().then(() => {
+                            showToast(loginStatus, '✅ All data refreshed!', 'success');
+                        });
+                    }
+                });
 
                 phoneInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') handleLogin();
