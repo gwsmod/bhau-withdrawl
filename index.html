@@ -354,75 +354,142 @@
             color: #7dffb3;
         }
 
-        /* ─── TOAST / NOTIFICATION ─── */
-        .toast {
-            background: rgba(27, 37, 66, 0.95);
-            border-radius: 16px;
-            padding: 14px 18px;
-            margin-top: 10px;
-            border-left: 4px solid #5a76b0;
-            font-size: 14px;
-            backdrop-filter: blur(10px);
-            animation: slideDown 0.3s ease;
+        /* ─── CUSTOM TOAST / NOTIFICATION ─── */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            max-width: 400px;
+            width: 90%;
+            z-index: 9999;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 10px;
+            pointer-events: none;
         }
 
-        .toast .toast-icon {
-            font-size: 20px;
-            flex-shrink: 0;
+        .toast-item {
+            background: rgba(20, 28, 50, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 16px 20px;
+            border-left: 4px solid #5a76b0;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+            animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            pointer-events: auto;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .toast .toast-msg {
-            flex: 1;
+        .toast-item:hover {
+            transform: translateX(-4px);
         }
 
-        .toast.error {
+        .toast-item.error {
             border-left-color: #ff4757;
             background: rgba(40, 20, 30, 0.95);
         }
 
-        .toast.success {
+        .toast-item.success {
             border-left-color: #2ed573;
             background: rgba(20, 40, 30, 0.95);
         }
 
-        .toast.warning {
+        .toast-item.warning {
             border-left-color: #ffa502;
             background: rgba(40, 35, 20, 0.95);
         }
 
-        .toast.info {
+        .toast-item.info {
             border-left-color: #5a76b0;
             background: rgba(20, 30, 50, 0.95);
         }
 
-        .toast .close-toast {
-            background: rgba(255, 255, 255, 0.05);
+        .toast-item .toast-icon {
+            font-size: 22px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            width: 30px;
+            text-align: center;
+        }
+
+        .toast-item .toast-content {
+            flex: 1;
+        }
+
+        .toast-item .toast-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #7a8aaa;
+            margin-bottom: 2px;
+        }
+
+        .toast-item .toast-msg {
+            font-size: 14px;
+            color: #eef2f9;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+
+        .toast-item .toast-msg .highlight {
+            color: #7dffb3;
+            font-weight: 700;
+        }
+
+        .toast-item .toast-time {
+            font-size: 10px;
+            color: #4a5a7a;
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        .toast-item .toast-close {
+            background: rgba(255, 255, 255, 0.03);
             border: none;
             color: #6a7a9a;
             cursor: pointer;
-            font-size: 16px;
-            padding: 0 6px;
+            font-size: 18px;
+            padding: 4px 8px;
             border-radius: 8px;
             transition: all 0.2s;
+            flex-shrink: 0;
+            margin-top: -4px;
         }
 
-        .toast .close-toast:hover {
-            background: rgba(255, 255, 255, 0.1);
+        .toast-item .toast-close:hover {
+            background: rgba(255, 255, 255, 0.08);
             color: #eef2f9;
         }
 
-        @keyframes slideDown {
+        @keyframes slideInRight {
             0% {
                 opacity: 0;
-                transform: translateY(-10px) scale(0.95);
+                transform: translateX(60px) scale(0.95);
             }
             100% {
                 opacity: 1;
-                transform: translateY(0) scale(1);
+                transform: translateX(0) scale(1);
             }
+        }
+
+        @keyframes slideOutRight {
+            0% {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(60px) scale(0.95);
+            }
+        }
+
+        .toast-item.hiding {
+            animation: slideOutRight 0.3s ease forwards;
         }
 
         /* ─── INFO GRID ─── */
@@ -705,11 +772,15 @@
             .info-item .value.balance { font-size: 24px; }
             .form-row { flex-direction: column; }
             .form-row .btn-outline { flex: 1; min-width: auto; }
-            .toast { flex-wrap: wrap; }
+            .toast-container { right: 10px; left: 10px; width: auto; top: 10px; }
+            .toast-item { padding: 12px 16px; }
         }
     </style>
 </head>
 <body>
+    <!-- ─── TOAST CONTAINER ─── -->
+    <div id="toastContainer" class="toast-container"></div>
+
     <div class="container" id="app">
         <!-- HEADER -->
         <div class="header">
@@ -879,6 +950,7 @@
             const debugBox = $('debugBox');
             const lastUpdated = $('lastUpdated');
             const refreshBalanceBtn = $('refreshBalanceBtn');
+            const toastContainer = $('toastContainer');
 
             // Add Card
             const addCardForm = $('addCardForm');
@@ -900,37 +972,49 @@
             const withdrawStatus = $('withdrawStatus');
             const selectedCardDisplay = $('selectedCardDisplay');
 
-            // ─── Enhanced Toast/Notification System ────────────
-            function showNotification(el, msg, type, duration) {
-                // Clear any existing timeout
-                if (el._toastTimer) {
-                    clearTimeout(el._toastTimer);
-                }
+            // ─── CUSTOM TOAST SYSTEM ───────────────────────────
+            function showCustomToast(title, message, type, duration) {
+                const types = {
+                    error: { icon: '❌', className: 'error' },
+                    success: { icon: '✅', className: 'success' },
+                    warning: { icon: '⚠️', className: 'warning' },
+                    info: { icon: 'ℹ️', className: 'info' }
+                };
 
-                // Remove all classes and show
-                el.classList.remove('hidden', 'error', 'success', 'warning', 'info');
+                const config = types[type] || types.info;
+                const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
                 
-                // Set icon based on type
-                let icon = 'ℹ️';
-                if (type === 'error') icon = '❌';
-                else if (type === 'success') icon = '✅';
-                else if (type === 'warning') icon = '⚠️';
-                else if (type === 'info') icon = 'ℹ️';
+                const toast = document.createElement('div');
+                toast.className = `toast-item ${config.className}`;
+                toast.id = toastId;
                 
-                // Build toast HTML with close button
-                el.innerHTML = `
-                    <span class="toast-icon">${icon}</span>
-                    <span class="toast-msg">${msg}</span>
-                    <button class="close-toast" onclick="this.parentElement.classList.add('hidden')">✕</button>
+                const time = new Date().toLocaleTimeString();
+                
+                toast.innerHTML = `
+                    <div class="toast-icon">${config.icon}</div>
+                    <div class="toast-content">
+                        <div class="toast-title">${title}</div>
+                        <div class="toast-msg">${message}</div>
+                        <div class="toast-time">${time}</div>
+                    </div>
+                    <button class="toast-close" onclick="document.getElementById('${toastId}').classList.add('hiding'); setTimeout(() => document.getElementById('${toastId}').remove(), 300)">✕</button>
                 `;
-                
-                el.classList.add(type || 'info');
-                
-                // Auto hide after duration (default 8 seconds)
+
+                toastContainer.appendChild(toast);
+
+                // Auto remove after duration
                 const autoHide = duration || 8000;
-                el._toastTimer = setTimeout(() => {
-                    el.classList.add('hidden');
+                setTimeout(() => {
+                    const el = document.getElementById(toastId);
+                    if (el) {
+                        el.classList.add('hiding');
+                        setTimeout(() => {
+                            if (el.parentNode) el.remove();
+                        }, 300);
+                    }
                 }, autoHide);
+
+                return toastId;
             }
 
             // ─── Config ─────────────────────────────────────────
@@ -1057,19 +1141,51 @@
                             localStorage.setItem('bhau_logged_in', 'true');
 
                             showDebug('✅ Login successful!', 'success');
+                            
+                            // ─── CUSTOM TOAST: LOGIN SUCCESS ───
+                            showCustomToast(
+                                '🎉 Login Successful',
+                                `Welcome back! <span class="highlight">${phone}</span> is now connected.`,
+                                'success'
+                            );
+                            
                             return { success: true, token: token };
                         } else {
                             showDebug('❌ Token not found', 'error');
+                            
+                            // ─── CUSTOM TOAST: LOGIN ERROR ───
+                            showCustomToast(
+                                '❌ Login Failed',
+                                'Token not found in response. Please try again.',
+                                'error'
+                            );
+                            
                             return { success: false, msg: 'Token not found in response' };
                         }
                     } else {
                         const errorMsg = data.msg || data.message || 'Login failed';
                         showDebug(`❌ ${errorMsg}`, 'error');
+                        
+                        // ─── CUSTOM TOAST: LOGIN ERROR ───
+                        showCustomToast(
+                            '❌ Login Failed',
+                            `${errorMsg}. Please check your credentials.`,
+                            'error'
+                        );
+                        
                         return { success: false, msg: errorMsg };
                     }
                 } catch (e) {
                     console.error('Login error:', e);
                     showDebug(`❌ Error: ${e.message}`, 'error');
+                    
+                    // ─── CUSTOM TOAST: NETWORK ERROR ───
+                    showCustomToast(
+                        '🌐 Network Error',
+                        `Unable to connect: ${e.message}. Please check your internet.`,
+                        'error'
+                    );
+                    
                     return { success: false, msg: e.message || 'Network error' };
                 }
             }
@@ -1471,7 +1587,13 @@
                 showDebug('🔄 Refreshing balance...', 'info');
                 await apiGetUserInfo();
                 updateUI();
-                showNotification(loginStatus, '✅ Balance updated successfully!', 'success');
+                
+                // ─── CUSTOM TOAST: BALANCE REFRESH ───
+                showCustomToast(
+                    '💰 Balance Updated',
+                    `Your current balance is <span class="highlight">₹${formatNumber(state.balance)}</span>`,
+                    'success'
+                );
             }
 
             // ─── Handlers ──────────────────────────────────────
@@ -1482,7 +1604,11 @@
                 const email = cardEmail.value.trim();
 
                 if (!name || !number || !ifsc) {
-                    showNotification(addCardStatus, '❌ Name, Account Number and IFSC are required!', 'error');
+                    showCustomToast(
+                        '❌ Validation Error',
+                        'Name, Account Number and IFSC are required!',
+                        'error'
+                    );
                     return;
                 }
 
@@ -1495,12 +1621,20 @@
                 submitCardBtn.disabled = false;
 
                 if (result.success) {
-                    showNotification(addCardStatus, '✅ Bank card added successfully!', 'success');
+                    showCustomToast(
+                        '✅ Card Added',
+                        `Bank card for <span class="highlight">${name}</span> added successfully!`,
+                        'success'
+                    );
                     addCardForm.classList.add('hidden');
                     toggleAddCardBtn.textContent = '➕ Add Card';
                     await loadAllData();
                 } else {
-                    showNotification(addCardStatus, '❌ ' + (result.msg || 'Failed to add card'), 'error');
+                    showCustomToast(
+                        '❌ Add Card Failed',
+                        result.msg || 'Failed to add bank card',
+                        'error'
+                    );
                 }
             }
 
@@ -1510,10 +1644,18 @@
                 const result = await apiDeleteCard(cardId);
 
                 if (result.success) {
-                    showNotification(loginStatus, '✅ Bank card deleted successfully!', 'success');
+                    showCustomToast(
+                        '✅ Card Deleted',
+                        `Bank card ID <span class="highlight">${cardId}</span> deleted successfully!`,
+                        'success'
+                    );
                     await loadAllData();
                 } else {
-                    showNotification(loginStatus, '❌ ' + (result.msg || 'Failed to delete card'), 'error');
+                    showCustomToast(
+                        '❌ Delete Failed',
+                        result.msg || 'Failed to delete card',
+                        'error'
+                    );
                 }
             }
 
@@ -1522,18 +1664,30 @@
                 const amount = parseFloat(withdrawAmount.value.trim());
 
                 if (!cardId) {
-                    showNotification(withdrawStatus, '❌ Please select a bank card first!', 'error');
+                    showCustomToast(
+                        '❌ Selection Error',
+                        'Please select a bank card first!',
+                        'error'
+                    );
                     return;
                 }
 
                 if (!amount || amount <= 0) {
-                    showNotification(withdrawStatus, '❌ Please enter a valid amount!', 'error');
+                    showCustomToast(
+                        '❌ Amount Error',
+                        'Please enter a valid amount!',
+                        'error'
+                    );
                     return;
                 }
 
                 // Check balance
                 if (state.balance !== null && amount > state.balance) {
-                    showNotification(withdrawStatus, `❌ Insufficient balance! Available: ₹${formatNumber(state.balance)}`, 'error');
+                    showCustomToast(
+                        '❌ Insufficient Balance',
+                        `Available balance: <span class="highlight">₹${formatNumber(state.balance)}</span>. Please enter a lower amount.`,
+                        'error'
+                    );
                     return;
                 }
 
@@ -1546,22 +1700,34 @@
                 submitWithdrawBtn.disabled = false;
 
                 if (result.success) {
-                    showNotification(withdrawStatus, `✅ ₹${amount} withdrawn successfully!`, 'success');
+                    // ─── CUSTOM TOAST: WITHDRAWAL SUCCESS ───
+                    showCustomToast(
+                        '💸 Withdrawal Successful',
+                        `₹<span class="highlight">${amount}</span> has been withdrawn to your bank account!`,
+                        'success'
+                    );
                     await loadAllData();
                     withdrawAmount.value = '';
                 } else {
-                    showNotification(withdrawStatus, '❌ ' + (result.msg || 'Withdrawal failed'), 'error');
+                    showCustomToast(
+                        '❌ Withdrawal Failed',
+                        result.msg || 'Failed to process withdrawal',
+                        'error'
+                    );
                 }
             }
 
             async function handleLogin() {
                 const phone = phoneInput.value.trim().replace(/\D/g, '');
                 if (phone.length !== 10) {
-                    showNotification(loginStatus, '❌ Please enter a valid 10-digit phone number!', 'error');
+                    showCustomToast(
+                        '❌ Invalid Phone',
+                        'Please enter a valid 10-digit phone number!',
+                        'error'
+                    );
                     return;
                 }
-                loginStatus.classList.add('hidden');
-                clearDebug();
+                
                 loginBtn.textContent = '⏳ Logging in...';
                 loginBtn.disabled = true;
 
@@ -1571,10 +1737,7 @@
                 loginBtn.disabled = false;
 
                 if (result.success) {
-                    showNotification(loginStatus, '✅ Login successful! Welcome back!', 'success');
                     await loadAllData();
-                } else {
-                    showNotification(loginStatus, '❌ ' + (result.msg || 'Login failed'), 'error');
                 }
             }
 
@@ -1600,7 +1763,12 @@
                 toggleAddCardBtn.textContent = '➕ Add Card';
                 withdrawForm.classList.add('hidden');
                 toggleWithdrawBtn.textContent = 'Open';
-                showNotification(loginStatus, '👋 Logged out successfully!', 'info');
+                
+                showCustomToast(
+                    '👋 Logged Out',
+                    'You have been successfully logged out.',
+                    'info'
+                );
             }
 
             function toggleAddCardForm() {
@@ -1616,7 +1784,6 @@
                     cardEmail.value = f.toLowerCase() + l.toLowerCase() + '@gmail.com';
                     cardNumber.value = '';
                     ifscCode.value = 'MAHB0002009';
-                    addCardStatus.classList.add('hidden');
                 } else {
                     addCardForm.classList.add('hidden');
                     toggleAddCardBtn.textContent = '➕ Add Card';
@@ -1647,6 +1814,13 @@
                     phoneInput.value = savedPhone;
                     showDebug('🔄 Session restored', 'success');
                     loadAllData();
+                    
+                    showCustomToast(
+                        '🔄 Session Restored',
+                        `Welcome back, <span class="highlight">${savedPhone}</span>!`,
+                        'info'
+                    );
+                    
                     return true;
                 }
                 return false;
