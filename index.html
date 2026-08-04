@@ -354,25 +354,75 @@
             color: #7dffb3;
         }
 
-        /* ─── TOAST ─── */
+        /* ─── TOAST / NOTIFICATION ─── */
         .toast {
-            background: rgba(27, 37, 66, 0.9);
+            background: rgba(27, 37, 66, 0.95);
             border-radius: 16px;
-            padding: 12px 16px;
+            padding: 14px 18px;
             margin-top: 10px;
-            border-left: 3px solid #5a76b0;
+            border-left: 4px solid #5a76b0;
             font-size: 14px;
             backdrop-filter: blur(10px);
+            animation: slideDown 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast .toast-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .toast .toast-msg {
+            flex: 1;
         }
 
         .toast.error {
-            border-left-color: #c04a5a;
-            background: rgba(35, 27, 43, 0.9);
+            border-left-color: #ff4757;
+            background: rgba(40, 20, 30, 0.95);
         }
 
         .toast.success {
-            border-left-color: #3aad6a;
-            background: rgba(27, 43, 35, 0.9);
+            border-left-color: #2ed573;
+            background: rgba(20, 40, 30, 0.95);
+        }
+
+        .toast.warning {
+            border-left-color: #ffa502;
+            background: rgba(40, 35, 20, 0.95);
+        }
+
+        .toast.info {
+            border-left-color: #5a76b0;
+            background: rgba(20, 30, 50, 0.95);
+        }
+
+        .toast .close-toast {
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: #6a7a9a;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0 6px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .toast .close-toast:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #eef2f9;
+        }
+
+        @keyframes slideDown {
+            0% {
+                opacity: 0;
+                transform: translateY(-10px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         /* ─── INFO GRID ─── */
@@ -655,6 +705,7 @@
             .info-item .value.balance { font-size: 24px; }
             .form-row { flex-direction: column; }
             .form-row .btn-outline { flex: 1; min-width: auto; }
+            .toast { flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -849,6 +900,39 @@
             const withdrawStatus = $('withdrawStatus');
             const selectedCardDisplay = $('selectedCardDisplay');
 
+            // ─── Enhanced Toast/Notification System ────────────
+            function showNotification(el, msg, type, duration) {
+                // Clear any existing timeout
+                if (el._toastTimer) {
+                    clearTimeout(el._toastTimer);
+                }
+
+                // Remove all classes and show
+                el.classList.remove('hidden', 'error', 'success', 'warning', 'info');
+                
+                // Set icon based on type
+                let icon = 'ℹ️';
+                if (type === 'error') icon = '❌';
+                else if (type === 'success') icon = '✅';
+                else if (type === 'warning') icon = '⚠️';
+                else if (type === 'info') icon = 'ℹ️';
+                
+                // Build toast HTML with close button
+                el.innerHTML = `
+                    <span class="toast-icon">${icon}</span>
+                    <span class="toast-msg">${msg}</span>
+                    <button class="close-toast" onclick="this.parentElement.classList.add('hidden')">✕</button>
+                `;
+                
+                el.classList.add(type || 'info');
+                
+                // Auto hide after duration (default 8 seconds)
+                const autoHide = duration || 8000;
+                el._toastTimer = setTimeout(() => {
+                    el.classList.add('hidden');
+                }, autoHide);
+            }
+
             // ─── Config ─────────────────────────────────────────
             function getConfig() {
                 return {
@@ -877,15 +961,6 @@
             }
 
             function getReqDate() { return Date.now(); }
-
-            // ─── Toast ──────────────────────────────────────────
-            function showToast(el, msg, type) {
-                el.classList.remove('hidden', 'error', 'success');
-                el.textContent = msg;
-                if (type) el.classList.add(type);
-                clearTimeout(el._toastTimer);
-                el._toastTimer = setTimeout(() => el.classList.add('hidden'), 5000);
-            }
 
             // ─── Debug ─────────────────────────────────────────
             function showDebug(msg, type) {
@@ -927,7 +1002,6 @@
                 };
 
                 showDebug('📡 Sending login...', 'info');
-                showDebug(`📱 Phone: ${phone}`, 'info');
 
                 try {
                     const resp = await fetch(cfg.base + '/app/password/login', {
@@ -986,7 +1060,7 @@
                             return { success: true, token: token };
                         } else {
                             showDebug('❌ Token not found', 'error');
-                            return { success: false, msg: 'Token not found' };
+                            return { success: false, msg: 'Token not found in response' };
                         }
                     } else {
                         const errorMsg = data.msg || data.message || 'Login failed';
@@ -1397,7 +1471,7 @@
                 showDebug('🔄 Refreshing balance...', 'info');
                 await apiGetUserInfo();
                 updateUI();
-                showToast(loginStatus, '✅ Balance updated!', 'success');
+                showNotification(loginStatus, '✅ Balance updated successfully!', 'success');
             }
 
             // ─── Handlers ──────────────────────────────────────
@@ -1408,7 +1482,7 @@
                 const email = cardEmail.value.trim();
 
                 if (!name || !number || !ifsc) {
-                    showToast(addCardStatus, '❌ Name, Account, IFSC required', 'error');
+                    showNotification(addCardStatus, '❌ Name, Account Number and IFSC are required!', 'error');
                     return;
                 }
 
@@ -1421,25 +1495,25 @@
                 submitCardBtn.disabled = false;
 
                 if (result.success) {
-                    showToast(addCardStatus, '✅ Card added!', 'success');
+                    showNotification(addCardStatus, '✅ Bank card added successfully!', 'success');
                     addCardForm.classList.add('hidden');
                     toggleAddCardBtn.textContent = '➕ Add Card';
                     await loadAllData();
                 } else {
-                    showToast(addCardStatus, '❌ ' + (result.msg || 'Failed'), 'error');
+                    showNotification(addCardStatus, '❌ ' + (result.msg || 'Failed to add card'), 'error');
                 }
             }
 
             async function handleDeleteCard(cardId) {
-                if (!confirm(`Delete card ID: ${cardId}?`)) return;
+                if (!confirm(`⚠️ Are you sure you want to delete card ID: ${cardId}?`)) return;
                 showDebug(`🗑️ Deleting ${cardId}...`, 'info');
                 const result = await apiDeleteCard(cardId);
 
                 if (result.success) {
-                    showToast(loginStatus, '✅ Card deleted!', 'success');
+                    showNotification(loginStatus, '✅ Bank card deleted successfully!', 'success');
                     await loadAllData();
                 } else {
-                    showToast(loginStatus, '❌ ' + (result.msg || 'Failed'), 'error');
+                    showNotification(loginStatus, '❌ ' + (result.msg || 'Failed to delete card'), 'error');
                 }
             }
 
@@ -1448,17 +1522,18 @@
                 const amount = parseFloat(withdrawAmount.value.trim());
 
                 if (!cardId) {
-                    showToast(withdrawStatus, '❌ Select a card', 'error');
+                    showNotification(withdrawStatus, '❌ Please select a bank card first!', 'error');
                     return;
                 }
 
                 if (!amount || amount <= 0) {
-                    showToast(withdrawStatus, '❌ Enter valid amount', 'error');
+                    showNotification(withdrawStatus, '❌ Please enter a valid amount!', 'error');
                     return;
                 }
 
+                // Check balance
                 if (state.balance !== null && amount > state.balance) {
-                    showToast(withdrawStatus, `❌ Insufficient balance: ₹${formatNumber(state.balance)}`, 'error');
+                    showNotification(withdrawStatus, `❌ Insufficient balance! Available: ₹${formatNumber(state.balance)}`, 'error');
                     return;
                 }
 
@@ -1471,18 +1546,18 @@
                 submitWithdrawBtn.disabled = false;
 
                 if (result.success) {
-                    showToast(withdrawStatus, `✅ ₹${amount} withdrawn!`, 'success');
+                    showNotification(withdrawStatus, `✅ ₹${amount} withdrawn successfully!`, 'success');
                     await loadAllData();
                     withdrawAmount.value = '';
                 } else {
-                    showToast(withdrawStatus, '❌ ' + (result.msg || 'Failed'), 'error');
+                    showNotification(withdrawStatus, '❌ ' + (result.msg || 'Withdrawal failed'), 'error');
                 }
             }
 
             async function handleLogin() {
                 const phone = phoneInput.value.trim().replace(/\D/g, '');
                 if (phone.length !== 10) {
-                    showToast(loginStatus, '❌ Enter 10-digit number', 'error');
+                    showNotification(loginStatus, '❌ Please enter a valid 10-digit phone number!', 'error');
                     return;
                 }
                 loginStatus.classList.add('hidden');
@@ -1496,10 +1571,10 @@
                 loginBtn.disabled = false;
 
                 if (result.success) {
-                    showToast(loginStatus, '✅ Login successful!', 'success');
+                    showNotification(loginStatus, '✅ Login successful! Welcome back!', 'success');
                     await loadAllData();
                 } else {
-                    showToast(loginStatus, '❌ ' + (result.msg || 'Login failed'), 'error');
+                    showNotification(loginStatus, '❌ ' + (result.msg || 'Login failed'), 'error');
                 }
             }
 
@@ -1525,6 +1600,7 @@
                 toggleAddCardBtn.textContent = '➕ Add Card';
                 withdrawForm.classList.add('hidden');
                 toggleWithdrawBtn.textContent = 'Open';
+                showNotification(loginStatus, '👋 Logged out successfully!', 'info');
             }
 
             function toggleAddCardForm() {
