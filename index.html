@@ -222,6 +222,9 @@
         .debug-box .error {
             color: #ff6b6b;
         }
+        .debug-box .info {
+            color: #5a8aba;
+        }
     </style>
 </head>
 <body>
@@ -350,7 +353,7 @@
             // ─── Debug ─────────────────────────────────────────
             function showDebug(msg, type) {
                 debugBox.classList.remove('hidden');
-                const className = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+                const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
                 debugBox.innerHTML += `<div class="${className}">${new Date().toLocaleTimeString()}: ${msg}</div>`;
                 debugBox.scrollTop = debugBox.scrollHeight;
             }
@@ -405,52 +408,65 @@
                     
                     const data = await resp.json();
                     showDebug(`📊 Status: ${resp.status}`, 'info');
-                    showDebug(`📦 Response: ${JSON.stringify(data).substring(0, 200)}...`, 'info');
                     
                     console.log('Login Response:', data);
                     
                     // Check if login was successful
                     if (resp.status === 200 && (data.code === 0 || data.success === true)) {
-                        const ud = data.data || {};
                         
-                        // Try multiple ways to get token
+                        // 🔥 CRITICAL FIX: Token is directly in data.data as a string
                         let token = null;
-                        if (ud.accessToken) token = ud.accessToken;
-                        else if (ud.token) token = ud.token;
+                        
+                        // Check if data.data is a string (JWT token)
+                        if (typeof data.data === 'string' && data.data.startsWith('eyJ')) {
+                            token = data.data;
+                            showDebug('✅ Token found in data.data (JWT string)', 'success');
+                        } 
+                        // Check if data.data is an object with token
+                        else if (typeof data.data === 'object' && data.data !== null) {
+                            if (data.data.accessToken) token = data.data.accessToken;
+                            else if (data.data.token) token = data.data.token;
+                            else if (data.data.authToken) token = data.data.authToken;
+                        }
+                        // Check in main data object
                         else if (data.accessToken) token = data.accessToken;
                         else if (data.token) token = data.token;
-                        else if (ud.authToken) token = ud.authToken;
                         else if (data.authToken) token = data.authToken;
                         
-                        // Also try to get from headers or other fields
-                        if (!token && data.data) {
-                            // Try to find token in nested objects
-                            const tokenFields = ['accessToken', 'token', 'authToken', 'authorization', 'Authorization'];
-                            for (const field of tokenFields) {
-                                if (data.data[field]) {
-                                    token = data.data[field];
-                                    break;
-                                }
+                        // Also try to parse if data.data is a JSON string
+                        if (!token && typeof data.data === 'string') {
+                            try {
+                                const parsed = JSON.parse(data.data);
+                                if (parsed.accessToken) token = parsed.accessToken;
+                                else if (parsed.token) token = parsed.token;
+                            } catch (e) {
+                                // Not JSON, that's fine
                             }
                         }
                         
-                        showDebug(`🔑 Token found: ${token ? '✅ Yes' : '❌ No'}`, token ? 'success' : 'error');
+                        showDebug(`🔑 Token: ${token ? token.substring(0, 30) + '...' : '❌ Not found'}`, token ? 'success' : 'error');
                         
                         if (token) {
                             state.token = token;
                             state.phone = phone;
-                            state.userData = ud;
                             state.isLoggedIn = true;
+                            
+                            // Store user data if available
+                            if (typeof data.data === 'object' && data.data !== null) {
+                                state.userData = data.data;
+                            } else {
+                                state.userData = { phone: phone };
+                            }
                             
                             localStorage.setItem('bhau_token', token);
                             localStorage.setItem('bhau_phone', phone);
                             localStorage.setItem('bhau_logged_in', 'true');
                             
                             showDebug('✅ Login successful!', 'success');
-                            return { success: true, token: token, data: ud };
+                            return { success: true, token: token };
                         } else {
                             showDebug('❌ Token not found in response', 'error');
-                            showDebug(`🔍 Full response: ${JSON.stringify(data)}`, 'error');
+                            showDebug(`🔍 Full response: ${JSON.stringify(data).substring(0, 500)}`, 'error');
                             return { success: false, msg: 'Token not found in response' };
                         }
                     } else {
@@ -597,12 +613,22 @@
                     balanceDisplay.innerHTML = '<span class="loading-spinner"></span> Loading...';
                 }
 
-                // User ID
-                const userId = state.userData?.id || state.userData?.userId || state.userData?.uid || '—';
+                // User ID - try to get from userData
+                let userId = '—';
+                if (state.userData) {
+                    if (state.userData.userId) userId = state.userData.userId;
+                    else if (state.userData.id) userId = state.userData.id;
+                    else if (state.userData.uid) userId = state.userData.uid;
+                    else if (state.userData.imUserId) userId = state.userData.imUserId;
+                }
                 userIdDisplay.textContent = userId;
 
                 // Email
-                const email = state.userData?.email || state.userData?.userEmail || '—';
+                let email = '—';
+                if (state.userData) {
+                    if (state.userData.email) email = state.userData.email;
+                    else if (state.userData.userEmail) email = state.userData.userEmail;
+                }
                 emailDisplay.textContent = email;
 
                 // Cards
