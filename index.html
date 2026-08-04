@@ -822,10 +822,7 @@
                     <div class="info-item balance-item">
                         <div class="label">
                             <span>💰 Wallet Balance</span>
-                            <div>
-                                <span id="refreshStatus" style="font-size:10px;color:#4a5a7a;margin-right:8px;"></span>
-                                <button class="toggle-form-btn" id="refreshBalanceBtn">⟳ Refresh</button>
-                            </div>
+                            <button class="toggle-form-btn" id="refreshBalanceBtn">⟳ Refresh</button>
                         </div>
                         <div class="value balance" id="balanceDisplay">
                             <span class="currency">₹</span> —
@@ -933,8 +930,7 @@
                 isLoggedIn: false,
                 lastUpdate: null,
                 withdraw: null,
-                recharge: null,
-                isRefreshing: false
+                recharge: null
             };
 
             // ─── DOM Refs ──────────────────────────────────────
@@ -954,7 +950,6 @@
             const debugBox = $('debugBox');
             const lastUpdated = $('lastUpdated');
             const refreshBalanceBtn = $('refreshBalanceBtn');
-            const refreshStatus = $('refreshStatus');
             const toastContainer = $('toastContainer');
 
             // Add Card
@@ -1007,7 +1002,8 @@
 
                 toastContainer.appendChild(toast);
 
-                const autoHide = duration || 6000;
+                // Auto remove after duration
+                const autoHide = duration || 8000;
                 setTimeout(() => {
                     const el = document.getElementById(toastId);
                     if (el) {
@@ -1019,43 +1015,6 @@
                 }, autoHide);
 
                 return toastId;
-            }
-
-            // ─── AUTO REFRESH WITHOUT LOADING OVERLAY ─────────
-            async function autoRefreshData(actionName, actionMsg, delay) {
-                if (state.isRefreshing) return;
-                state.isRefreshing = true;
-                
-                const reloadDelay = delay || 1500;
-                
-                try {
-                    // Wait for server to process
-                    await new Promise(resolve => setTimeout(resolve, reloadDelay));
-                    
-                    // Reload all data
-                    await loadAllData();
-                    
-                    // Show success toast with updated details
-                    const balanceText = state.balance !== null ? `₹${formatNumber(state.balance)}` : '—';
-                    const cardCount = state.cards ? state.cards.length : 0;
-                    
-                    showCustomToast(
-                        '✅ Dashboard Updated',
-                        `${actionMsg}<br>💰 Balance: <span class="highlight">${balanceText}</span> | 🏦 Cards: <span class="highlight">${cardCount}</span>`,
-                        'success',
-                        5000
-                    );
-                    
-                } catch (e) {
-                    console.error('Auto refresh error:', e);
-                    showCustomToast(
-                        '❌ Refresh Failed',
-                        'Could not update data. Please try again.',
-                        'error'
-                    );
-                } finally {
-                    state.isRefreshing = false;
-                }
             }
 
             // ─── Config ─────────────────────────────────────────
@@ -1183,6 +1142,7 @@
 
                             showDebug('✅ Login successful!', 'success');
                             
+                            // ─── CUSTOM TOAST: LOGIN SUCCESS ───
                             showCustomToast(
                                 '🎉 Login Successful',
                                 `Welcome back! <span class="highlight">${phone}</span> is now connected.`,
@@ -1192,31 +1152,40 @@
                             return { success: true, token: token };
                         } else {
                             showDebug('❌ Token not found', 'error');
+                            
+                            // ─── CUSTOM TOAST: LOGIN ERROR ───
                             showCustomToast(
                                 '❌ Login Failed',
                                 'Token not found in response. Please try again.',
                                 'error'
                             );
+                            
                             return { success: false, msg: 'Token not found in response' };
                         }
                     } else {
                         const errorMsg = data.msg || data.message || 'Login failed';
                         showDebug(`❌ ${errorMsg}`, 'error');
+                        
+                        // ─── CUSTOM TOAST: LOGIN ERROR ───
                         showCustomToast(
                             '❌ Login Failed',
                             `${errorMsg}. Please check your credentials.`,
                             'error'
                         );
+                        
                         return { success: false, msg: errorMsg };
                     }
                 } catch (e) {
                     console.error('Login error:', e);
                     showDebug(`❌ Error: ${e.message}`, 'error');
+                    
+                    // ─── CUSTOM TOAST: NETWORK ERROR ───
                     showCustomToast(
                         '🌐 Network Error',
                         `Unable to connect: ${e.message}. Please check your internet.`,
                         'error'
                     );
+                    
                     return { success: false, msg: e.message || 'Network error' };
                 }
             }
@@ -1614,29 +1583,20 @@
             }
 
             async function refreshBalance() {
-                if (state.isRefreshing) return;
                 if (!state.isLoggedIn || !state.token) return;
+                showDebug('🔄 Refreshing balance...', 'info');
+                await apiGetUserInfo();
+                updateUI();
                 
-                state.isRefreshing = true;
-                
-                try {
-                    await new Promise(resolve => setTimeout(resolve, 1200));
-                    await apiGetUserInfo();
-                    updateUI();
-                    
-                    showCustomToast(
-                        '💰 Balance Updated',
-                        `Your current balance is <span class="highlight">₹${formatNumber(state.balance)}</span>`,
-                        'success'
-                    );
-                } catch (e) {
-                    showCustomToast('❌ Error', 'Failed to refresh balance', 'error');
-                } finally {
-                    state.isRefreshing = false;
-                }
+                // ─── CUSTOM TOAST: BALANCE REFRESH ───
+                showCustomToast(
+                    '💰 Balance Updated',
+                    `Your current balance is <span class="highlight">₹${formatNumber(state.balance)}</span>`,
+                    'success'
+                );
             }
 
-            // ─── Handlers with Auto-Refresh ────────────────────
+            // ─── Handlers ──────────────────────────────────────
             async function handleAddCard() {
                 const name = cardName.value.trim();
                 const number = cardNumber.value.trim().replace(/\s/g, '');
@@ -1652,7 +1612,6 @@
                     return;
                 }
 
-                if (state.isRefreshing) return;
                 submitCardBtn.textContent = '⏳ Adding...';
                 submitCardBtn.disabled = true;
 
@@ -1665,17 +1624,11 @@
                     showCustomToast(
                         '✅ Card Added',
                         `Bank card for <span class="highlight">${name}</span> added successfully!`,
-                        'success',
-                        3000
+                        'success'
                     );
                     addCardForm.classList.add('hidden');
                     toggleAddCardBtn.textContent = '➕ Add Card';
-                    
-                    await autoRefreshData(
-                        'Card Addition',
-                        `✅ Card added for <span class="highlight">${name}</span>`,
-                        1500
-                    );
+                    await loadAllData();
                 } else {
                     showCustomToast(
                         '❌ Add Card Failed',
@@ -1687,8 +1640,6 @@
 
             async function handleDeleteCard(cardId) {
                 if (!confirm(`⚠️ Are you sure you want to delete card ID: ${cardId}?`)) return;
-                if (state.isRefreshing) return;
-                
                 showDebug(`🗑️ Deleting ${cardId}...`, 'info');
                 const result = await apiDeleteCard(cardId);
 
@@ -1696,15 +1647,9 @@
                     showCustomToast(
                         '✅ Card Deleted',
                         `Bank card ID <span class="highlight">${cardId}</span> deleted successfully!`,
-                        'success',
-                        3000
+                        'success'
                     );
-                    
-                    await autoRefreshData(
-                        'Card Deletion',
-                        `✅ Card ID <span class="highlight">${cardId}</span> removed`,
-                        1500
-                    );
+                    await loadAllData();
                 } else {
                     showCustomToast(
                         '❌ Delete Failed',
@@ -1746,7 +1691,6 @@
                     return;
                 }
 
-                if (state.isRefreshing) return;
                 submitWithdrawBtn.textContent = '⏳ Processing...';
                 submitWithdrawBtn.disabled = true;
 
@@ -1756,19 +1700,14 @@
                 submitWithdrawBtn.disabled = false;
 
                 if (result.success) {
+                    // ─── CUSTOM TOAST: WITHDRAWAL SUCCESS ───
                     showCustomToast(
                         '💸 Withdrawal Successful',
-                        `₹<span class="highlight">${amount}</span> has been withdrawn!`,
-                        'success',
-                        3000
+                        `₹<span class="highlight">${amount}</span> has been withdrawn to your bank account!`,
+                        'success'
                     );
+                    await loadAllData();
                     withdrawAmount.value = '';
-                    
-                    await autoRefreshData(
-                        'Withdrawal',
-                        `💸 ₹<span class="highlight">${amount}</span> withdrawn successfully`,
-                        2000
-                    );
                 } else {
                     showCustomToast(
                         '❌ Withdrawal Failed',
@@ -1789,7 +1728,6 @@
                     return;
                 }
                 
-                if (state.isRefreshing) return;
                 loginBtn.textContent = '⏳ Logging in...';
                 loginBtn.disabled = true;
 
@@ -1800,18 +1738,10 @@
 
                 if (result.success) {
                     await loadAllData();
-                    
-                    showCustomToast(
-                        '🎉 Welcome',
-                        `Dashboard loaded for <span class="highlight">${phone}</span>`,
-                        'success'
-                    );
                 }
             }
 
             function handleLogout() {
-                if (state.isRefreshing) return;
-                
                 state.token = null;
                 state.phone = null;
                 state.userData = null;
@@ -1883,14 +1813,13 @@
                     state.isLoggedIn = true;
                     phoneInput.value = savedPhone;
                     showDebug('🔄 Session restored', 'success');
+                    loadAllData();
                     
-                    loadAllData().then(() => {
-                        showCustomToast(
-                            '🔄 Session Restored',
-                            `Welcome back, <span class="highlight">${savedPhone}</span>!`,
-                            'info'
-                        );
-                    });
+                    showCustomToast(
+                        '🔄 Session Restored',
+                        `Welcome back, <span class="highlight">${savedPhone}</span>!`,
+                        'info'
+                    );
                     
                     return true;
                 }
