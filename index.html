@@ -776,25 +776,25 @@
             .toast-item { padding: 12px 16px; }
         }
 
-        /* ─── FULL PAGE RELOAD OVERLAY ─── */
-        .reload-overlay {
+        /* ─── LOADING OVERLAY (SIMPLE) ─── */
+        .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(10, 14, 26, 0.92);
-            backdrop-filter: blur(15px);
-            z-index: 100000;
+            background: rgba(10, 14, 26, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 99999;
             display: none;
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            gap: 25px;
-            animation: fadeIn 0.4s ease;
+            gap: 20px;
+            animation: fadeIn 0.3s ease;
         }
 
-        .reload-overlay.active {
+        .loading-overlay.active {
             display: flex;
         }
 
@@ -803,91 +803,39 @@
             100% { opacity: 1; }
         }
 
-        .reload-overlay .reload-spinner {
-            width: 70px;
-            height: 70px;
-            border: 4px solid rgba(125, 255, 179, 0.08);
-            border-top: 4px solid #7dffb3;
-            border-right: 4px solid #3d5aa0;
+        .loading-overlay .loader {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(125, 255, 179, 0.1);
+            border-top: 3px solid #7dffb3;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            box-shadow: 0 0 40px rgba(125, 255, 179, 0.1);
+            animation: spin 0.8s linear infinite;
         }
 
-        .reload-overlay .reload-icon {
-            font-size: 50px;
-            animation: pulse-icon 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse-icon {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        .reload-overlay .reload-text {
+        .loading-overlay .load-text {
             color: #eef2f9;
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 600;
             letter-spacing: 0.5px;
-            text-align: center;
         }
 
-        .reload-overlay .reload-text span {
+        .loading-overlay .load-text span {
             color: #7dffb3;
-            background: linear-gradient(135deg, #7dffb3, #3d5aa0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
         }
 
-        .reload-overlay .reload-sub {
+        .loading-overlay .load-sub {
             color: #6a7a9a;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 400;
-            text-align: center;
-            animation: pulse-sub 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse-sub {
-            0%, 100% { opacity: 0.6; }
-            50% { opacity: 1; }
-        }
-
-        .reload-overlay .reload-progress {
-            width: 200px;
-            height: 3px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-
-        .reload-overlay .reload-progress .progress-bar {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #7dffb3, #3d5aa0);
-            border-radius: 10px;
-            animation: progressAnim 1.8s ease-in-out forwards;
-        }
-
-        @keyframes progressAnim {
-            0% { width: 0%; }
-            30% { width: 30%; }
-            60% { width: 65%; }
-            85% { width: 85%; }
-            100% { width: 100%; }
         }
     </style>
 </head>
 <body>
-    <!-- ─── FULL PAGE RELOAD OVERLAY ─── -->
-    <div id="reloadOverlay" class="reload-overlay">
-        <div class="reload-icon">🔄</div>
-        <div class="reload-spinner"></div>
-        <div class="reload-text">Refreshing <span>Dashboard</span></div>
-        <div class="reload-sub">Updating your latest data...</div>
-        <div class="reload-progress">
-            <div class="progress-bar"></div>
-        </div>
+    <!-- ─── LOADING OVERLAY ─── -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loader"></div>
+        <div class="load-text">Refreshing <span>Dashboard</span></div>
+        <div class="load-sub">Please wait...</div>
     </div>
 
     <!-- ─── TOAST CONTAINER ─── -->
@@ -1068,7 +1016,7 @@
             const refreshBalanceBtn = $('refreshBalanceBtn');
             const refreshStatus = $('refreshStatus');
             const toastContainer = $('toastContainer');
-            const reloadOverlay = $('reloadOverlay');
+            const loadingOverlay = $('loadingOverlay');
 
             // Add Card
             const addCardForm = $('addCardForm');
@@ -1090,29 +1038,18 @@
             const withdrawStatus = $('withdrawStatus');
             const selectedCardDisplay = $('selectedCardDisplay');
 
-            // ─── FULL PAGE RELOAD ─────────────────────────────
-            function showFullPageReload(actionName) {
-                const overlay = reloadOverlay;
+            // ─── LOADING OVERLAY ──────────────────────────────
+            function showLoading(actionName) {
+                const overlay = loadingOverlay;
                 overlay.classList.add('active');
-                const textEl = overlay.querySelector('.reload-text');
-                const subEl = overlay.querySelector('.reload-sub');
+                const textEl = overlay.querySelector('.load-text');
+                const subEl = overlay.querySelector('.load-sub');
                 textEl.innerHTML = `🔄 ${actionName}`;
-                subEl.textContent = 'Updating your latest data...';
-                
-                // Reset and restart progress bar
-                const progressBar = overlay.querySelector('.progress-bar');
-                progressBar.style.animation = 'none';
-                setTimeout(() => {
-                    progressBar.style.animation = 'progressAnim 2s ease-in-out forwards';
-                }, 10);
+                subEl.textContent = 'Updating your data...';
             }
 
-            function hideFullPageReload() {
-                const overlay = reloadOverlay;
-                overlay.classList.remove('active');
-                // Reset progress bar
-                const progressBar = overlay.querySelector('.progress-bar');
-                progressBar.style.animation = 'none';
+            function hideLoading() {
+                loadingOverlay.classList.remove('active');
             }
 
             // ─── CUSTOM TOAST SYSTEM ───────────────────────────
@@ -1145,7 +1082,7 @@
 
                 toastContainer.appendChild(toast);
 
-                const autoHide = duration || 8000;
+                const autoHide = duration || 6000;
                 setTimeout(() => {
                     const el = document.getElementById(toastId);
                     if (el) {
@@ -1159,15 +1096,15 @@
                 return toastId;
             }
 
-            // ─── AUTO REFRESH WITH FULL PAGE RELOAD ──────────
-            async function autoRefreshWithReload(actionName, actionMsg, delay) {
+            // ─── AUTO REFRESH WITH LOADING OVERLAY ────────────
+            async function autoRefreshWithLoading(actionName, actionMsg, delay) {
                 if (state.isRefreshing) return;
                 state.isRefreshing = true;
                 
-                const reloadDelay = delay || 2000;
+                const reloadDelay = delay || 1800;
                 
-                // Show full page reload overlay
-                showFullPageReload(`Refreshing after ${actionName}...`);
+                // Show loading overlay
+                showLoading(`Refreshing after ${actionName}...`);
                 
                 try {
                     // Wait for server to process
@@ -1177,7 +1114,7 @@
                     await loadAllData();
                     
                     // Hide overlay
-                    hideFullPageReload();
+                    hideLoading();
                     
                     // Show success toast with updated details
                     const balanceText = state.balance !== null ? `₹${formatNumber(state.balance)}` : '—';
@@ -1192,7 +1129,7 @@
                     
                 } catch (e) {
                     console.error('Auto refresh error:', e);
-                    hideFullPageReload();
+                    hideLoading();
                     showCustomToast(
                         '❌ Refresh Failed',
                         'Could not update data. Please try again.',
@@ -1762,13 +1699,13 @@
                 if (state.isRefreshing) return;
                 if (!state.isLoggedIn || !state.token) return;
                 
-                showFullPageReload('Refreshing Balance...');
+                showLoading('Refreshing Balance...');
                 
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    await new Promise(resolve => setTimeout(resolve, 1200));
                     await apiGetUserInfo();
                     updateUI();
-                    hideFullPageReload();
+                    hideLoading();
                     
                     showCustomToast(
                         '💰 Balance Updated',
@@ -1776,12 +1713,12 @@
                         'success'
                     );
                 } catch (e) {
-                    hideFullPageReload();
+                    hideLoading();
                     showCustomToast('❌ Error', 'Failed to refresh balance', 'error');
                 }
             }
 
-            // ─── Handlers with Auto-Refresh & Full Reload ──────
+            // ─── Handlers with Auto-Refresh ────────────────────
             async function handleAddCard() {
                 const name = cardName.value.trim();
                 const number = cardNumber.value.trim().replace(/\s/g, '');
@@ -1816,8 +1753,7 @@
                     addCardForm.classList.add('hidden');
                     toggleAddCardBtn.textContent = '➕ Add Card';
                     
-                    // ─── FULL PAGE RELOAD AFTER ADD CARD ───
-                    await autoRefreshWithReload(
+                    await autoRefreshWithLoading(
                         'Card Addition',
                         `✅ Card added for <span class="highlight">${name}</span>`,
                         2000
@@ -1846,8 +1782,7 @@
                         3000
                     );
                     
-                    // ─── FULL PAGE RELOAD AFTER DELETE CARD ───
-                    await autoRefreshWithReload(
+                    await autoRefreshWithLoading(
                         'Card Deletion',
                         `✅ Card ID <span class="highlight">${cardId}</span> removed`,
                         2000
@@ -1911,8 +1846,7 @@
                     );
                     withdrawAmount.value = '';
                     
-                    // ─── FULL PAGE RELOAD AFTER WITHDRAWAL ───
-                    await autoRefreshWithReload(
+                    await autoRefreshWithLoading(
                         'Withdrawal',
                         `💸 ₹<span class="highlight">${amount}</span> withdrawn successfully`,
                         2500
@@ -1947,9 +1881,9 @@
                 loginBtn.disabled = false;
 
                 if (result.success) {
-                    showFullPageReload('Loading Dashboard...');
+                    showLoading('Loading Dashboard...');
                     await loadAllData();
-                    hideFullPageReload();
+                    hideLoading();
                     
                     showCustomToast(
                         '🎉 Welcome',
@@ -2034,9 +1968,9 @@
                     phoneInput.value = savedPhone;
                     showDebug('🔄 Session restored', 'success');
                     
-                    showFullPageReload('Restoring Session...');
+                    showLoading('Restoring Session...');
                     loadAllData().then(() => {
-                        hideFullPageReload();
+                        hideLoading();
                         showCustomToast(
                             '🔄 Session Restored',
                             `Welcome back, <span class="highlight">${savedPhone}</span>!`,
