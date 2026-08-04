@@ -204,6 +204,24 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .debug-box {
+            background: #0a0f1a;
+            border: 1px solid #1a2a3a;
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 11px;
+            color: #4a6a8a;
+            max-height: 150px;
+            overflow: auto;
+            font-family: monospace;
+        }
+        .debug-box .success {
+            color: #7dffb3;
+        }
+        .debug-box .error {
+            color: #ff6b6b;
+        }
     </style>
 </head>
 <body>
@@ -222,6 +240,7 @@
                 </div>
                 <button class="btn" id="loginBtn">🔑 Login</button>
                 <div id="loginStatus" class="toast hidden"></div>
+                <div id="debugBox" class="debug-box hidden"></div>
             </div>
         </div>
 
@@ -288,6 +307,7 @@
             const userIdDisplay = $('userIdDisplay');
             const emailDisplay = $('emailDisplay');
             const cardsDisplay = $('cardsDisplay');
+            const debugBox = $('debugBox');
 
             // ─── Config ─────────────────────────────────────────
             function getConfig() {
@@ -327,6 +347,19 @@
                 el._toastTimer = setTimeout(() => el.classList.add('hidden'), 5000);
             }
 
+            // ─── Debug ─────────────────────────────────────────
+            function showDebug(msg, type) {
+                debugBox.classList.remove('hidden');
+                const className = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+                debugBox.innerHTML += `<div class="${className}">${new Date().toLocaleTimeString()}: ${msg}</div>`;
+                debugBox.scrollTop = debugBox.scrollHeight;
+            }
+
+            function clearDebug() {
+                debugBox.innerHTML = '';
+                debugBox.classList.add('hidden');
+            }
+
             // ─── API Calls ─────────────────────────────────────
             async function apiLogin(phone, password) {
                 password = password || 'Sanju2005';
@@ -352,6 +385,10 @@
                     reqDate: reqDate,
                     ua: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36'
                 };
+                
+                showDebug('📡 Sending login request...', 'info');
+                showDebug(`📱 Phone: ${phone}`, 'info');
+                
                 try {
                     const resp = await fetch(cfg.base + '/app/password/login', {
                         method: 'POST',
@@ -365,12 +402,39 @@
                         },
                         body: JSON.stringify(payload)
                     });
+                    
                     const data = await resp.json();
+                    showDebug(`📊 Status: ${resp.status}`, 'info');
+                    showDebug(`📦 Response: ${JSON.stringify(data).substring(0, 200)}...`, 'info');
+                    
                     console.log('Login Response:', data);
                     
+                    // Check if login was successful
                     if (resp.status === 200 && (data.code === 0 || data.success === true)) {
                         const ud = data.data || {};
-                        const token = ud.accessToken || ud.token || data.accessToken || data.token;
+                        
+                        // Try multiple ways to get token
+                        let token = null;
+                        if (ud.accessToken) token = ud.accessToken;
+                        else if (ud.token) token = ud.token;
+                        else if (data.accessToken) token = data.accessToken;
+                        else if (data.token) token = data.token;
+                        else if (ud.authToken) token = ud.authToken;
+                        else if (data.authToken) token = data.authToken;
+                        
+                        // Also try to get from headers or other fields
+                        if (!token && data.data) {
+                            // Try to find token in nested objects
+                            const tokenFields = ['accessToken', 'token', 'authToken', 'authorization', 'Authorization'];
+                            for (const field of tokenFields) {
+                                if (data.data[field]) {
+                                    token = data.data[field];
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        showDebug(`🔑 Token found: ${token ? '✅ Yes' : '❌ No'}`, token ? 'success' : 'error');
                         
                         if (token) {
                             state.token = token;
@@ -382,15 +446,21 @@
                             localStorage.setItem('bhau_phone', phone);
                             localStorage.setItem('bhau_logged_in', 'true');
                             
+                            showDebug('✅ Login successful!', 'success');
                             return { success: true, token: token, data: ud };
                         } else {
-                            return { success: false, msg: 'Token not found' };
+                            showDebug('❌ Token not found in response', 'error');
+                            showDebug(`🔍 Full response: ${JSON.stringify(data)}`, 'error');
+                            return { success: false, msg: 'Token not found in response' };
                         }
                     } else {
-                        return { success: false, msg: data.msg || 'Login failed' };
+                        const errorMsg = data.msg || data.message || 'Login failed';
+                        showDebug(`❌ ${errorMsg}`, 'error');
+                        return { success: false, msg: errorMsg };
                     }
                 } catch (e) {
                     console.error('Login error:', e);
+                    showDebug(`❌ Error: ${e.message}`, 'error');
                     return { success: false, msg: e.message || 'Network error' };
                 }
             }
@@ -582,6 +652,7 @@
                     return;
                 }
                 loginStatus.classList.add('hidden');
+                clearDebug();
                 loginBtn.textContent = '⏳ Logging in...';
                 loginBtn.disabled = true;
 
@@ -612,6 +683,7 @@
                 
                 updateUI();
                 phoneInput.value = '';
+                clearDebug();
             }
 
             // ─── Auto-restore Session ─────────────────────────
@@ -625,6 +697,7 @@
                     state.phone = savedPhone;
                     state.isLoggedIn = true;
                     phoneInput.value = savedPhone;
+                    showDebug('🔄 Session restored from localStorage', 'success');
                     loadUserData();
                     return true;
                 }
