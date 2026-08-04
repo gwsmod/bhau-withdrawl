@@ -112,65 +112,56 @@
             50% { opacity: 1; transform: scale(1.2); }
         }
 
-        /* ─── AUTO-RELOAD INDICATOR ─── */
-        .auto-reload-bar {
-            background: rgba(15, 22, 41, 0.6);
+        /* ─── SOUND TOGGLE ─── */
+        .sound-toggle {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 999;
+            background: rgba(20, 28, 50, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 40px;
-            padding: 6px 14px;
+            padding: 10px 16px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            border: 1px solid rgba(125, 255, 179, 0.06);
-            font-size: 11px;
-            color: #6a7a9a;
-        }
-
-        .auto-reload-bar .status {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .auto-reload-bar .status .pulse-dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background: #2ed573;
-            border-radius: 50%;
-            animation: pulse-dot 2s ease-in-out infinite;
-        }
-
-        .auto-reload-bar .countdown {
-            font-weight: 600;
-            color: #7dffb3;
-            min-width: 20px;
-            text-align: center;
-        }
-
-        .auto-reload-bar .toggle-btn {
-            background: rgba(42, 58, 90, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            color: #8a9aaa;
-            padding: 2px 12px;
-            border-radius: 40px;
-            font-size: 10px;
-            font-weight: 600;
+            gap: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             cursor: pointer;
             transition: all 0.3s ease;
-            text-transform: uppercase;
+        }
+
+        .sound-toggle:hover {
+            transform: scale(1.05);
+            border-color: rgba(125, 255, 179, 0.2);
+        }
+
+        .sound-toggle .sound-icon {
+            font-size: 20px;
+        }
+
+        .sound-toggle .sound-label {
+            font-size: 11px;
+            color: #8a9aaa;
+            font-weight: 600;
             letter-spacing: 0.5px;
         }
 
-        .auto-reload-bar .toggle-btn:hover {
-            background: rgba(42, 58, 90, 0.6);
-            color: #c6d2f0;
+        .sound-toggle .sound-status {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 20px;
         }
 
-        .auto-reload-bar .toggle-btn.active {
+        .sound-toggle .sound-status.on {
             background: rgba(46, 213, 115, 0.15);
             color: #2ed573;
-            border-color: rgba(46, 213, 115, 0.2);
+        }
+
+        .sound-toggle .sound-status.off {
+            background: rgba(255, 71, 87, 0.15);
+            color: #ff4757;
         }
 
         /* ─── CARDS ─── */
@@ -835,11 +826,35 @@
             .form-row .btn-outline { flex: 1; min-width: auto; }
             .toast-container { right: 10px; left: 10px; width: auto; top: 10px; }
             .toast-item { padding: 12px 16px; }
-            .auto-reload-bar { flex-wrap: wrap; gap: 6px; justify-content: center; }
+            .sound-toggle { bottom: 10px; left: 10px; padding: 8px 12px; }
+            .sound-toggle .sound-label { display: none; }
+        }
+
+        /* ─── HIDE AUDIO ELEMENTS ─── */
+        audio.custom-sound {
+            display: none;
         }
     </style>
 </head>
 <body>
+    <!-- ─── SOUND TOGGLE ─── -->
+    <div class="sound-toggle" id="soundToggle">
+        <span class="sound-icon" id="soundIcon">🔊</span>
+        <span class="sound-label">Sound</span>
+        <span class="sound-status on" id="soundStatus">ON</span>
+    </div>
+
+    <!-- ─── CUSTOM SOUND FILES ─── -->
+    <audio id="soundSuccess" class="custom-sound" preload="auto">
+        <source src="sounds/success.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="soundError" class="custom-sound" preload="auto">
+        <source src="sounds/error.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="soundDelete" class="custom-sound" preload="auto">
+        <source src="sounds/delete.mp3" type="audio/mpeg">
+    </audio>
+
     <!-- ─── TOAST CONTAINER ─── -->
     <div id="toastContainer" class="toast-container"></div>
 
@@ -853,16 +868,6 @@
                 <span>Secure Login</span>
                 <span class="dot"></span>
             </div>
-        </div>
-
-        <!-- AUTO-RELOAD STATUS BAR -->
-        <div class="auto-reload-bar" id="autoReloadBar">
-            <div class="status">
-                <span class="pulse-dot"></span>
-                <span>Auto-Reload</span>
-            </div>
-            <div class="countdown" id="countdownTimer">5</div>
-            <button class="toggle-btn active" id="toggleAutoReload">ON</button>
         </div>
 
         <!-- LOGIN SECTION -->
@@ -1003,10 +1008,30 @@
                 lastUpdate: null,
                 withdraw: null,
                 recharge: null,
-                autoReloadEnabled: true,
-                autoReloadInterval: null,
-                countdown: 5
+                soundEnabled: true
             };
+
+            // ─── SOUND SYSTEM ──────────────────────────────────
+            function playSound(type) {
+                if (!state.soundEnabled) return;
+                
+                const soundMap = {
+                    'success': 'soundSuccess',
+                    'error': 'soundError',
+                    'delete': 'soundDelete'
+                };
+                
+                const audioId = soundMap[type];
+                if (audioId) {
+                    const audio = document.getElementById(audioId);
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play().catch(function(e) {
+                            console.log('Audio play error:', e);
+                        });
+                    }
+                }
+            }
 
             // ─── DOM Refs ──────────────────────────────────────
             const $ = id => document.getElementById(id);
@@ -1026,9 +1051,9 @@
             const lastUpdated = $('lastUpdated');
             const refreshBalanceBtn = $('refreshBalanceBtn');
             const toastContainer = $('toastContainer');
-            const countdownTimer = $('countdownTimer');
-            const toggleAutoReload = $('toggleAutoReload');
-            const autoReloadBar = $('autoReloadBar');
+            const soundToggle = $('soundToggle');
+            const soundIcon = $('soundIcon');
+            const soundStatus = $('soundStatus');
 
             // Add Card
             const addCardForm = $('addCardForm');
@@ -1050,75 +1075,35 @@
             const withdrawStatus = $('withdrawStatus');
             const selectedCardDisplay = $('selectedCardDisplay');
 
-            // ─── AUTO-RELOAD SYSTEM ────────────────────────────
-            function startAutoReload() {
-                if (state.autoReloadInterval) {
-                    clearInterval(state.autoReloadInterval);
-                }
-                state.autoReloadEnabled = true;
-                state.countdown = 5;
-                toggleAutoReload.textContent = 'ON';
-                toggleAutoReload.classList.add('active');
-                countdownTimer.textContent = '5';
-                
-                state.autoReloadInterval = setInterval(() => {
-                    state.countdown--;
-                    countdownTimer.textContent = state.countdown;
-                    
-                    if (state.countdown <= 0) {
-                        state.countdown = 5;
-                        performAutoReload();
-                    }
-                }, 1000);
-            }
-
-            function stopAutoReload() {
-                if (state.autoReloadInterval) {
-                    clearInterval(state.autoReloadInterval);
-                    state.autoReloadInterval = null;
-                }
-                state.autoReloadEnabled = false;
-                toggleAutoReload.textContent = 'OFF';
-                toggleAutoReload.classList.remove('active');
-                countdownTimer.textContent = '--';
-            }
-
-            function toggleAutoReloadHandler() {
-                if (state.autoReloadEnabled) {
-                    stopAutoReload();
+            // ─── SOUND TOGGLE ──────────────────────────────────
+            soundToggle.addEventListener('click', function() {
+                state.soundEnabled = !state.soundEnabled;
+                if (state.soundEnabled) {
+                    soundIcon.textContent = '🔊';
+                    soundStatus.textContent = 'ON';
+                    soundStatus.className = 'sound-status on';
+                    // Test sound
+                    playSound('success');
                 } else {
-                    startAutoReload();
+                    soundIcon.textContent = '🔇';
+                    soundStatus.textContent = 'OFF';
+                    soundStatus.className = 'sound-status off';
                 }
-            }
+            });
 
-            async function performAutoReload() {
-                if (!state.isLoggedIn || !state.token) {
-                    // Don't reload if not logged in
-                    return;
-                }
-                
-                try {
-                    await loadAllData();
-                    // Show a subtle toast that auto-reload happened
-                    showCustomToast(
-                        '🔄 Auto-Refreshed',
-                        'Dashboard updated automatically',
-                        'info',
-                        3000
-                    );
-                } catch (e) {
-                    console.log('Auto-reload error:', e);
-                }
-            }
-
-            // ─── CUSTOM TOAST SYSTEM ───────────────────────────
-            function showCustomToast(title, message, type, duration) {
+            // ─── CUSTOM TOAST SYSTEM WITH SOUND ───────────────
+            function showCustomToast(title, message, type, duration, soundType) {
                 const types = {
                     error: { icon: '❌', className: 'error' },
                     success: { icon: '✅', className: 'success' },
                     warning: { icon: '⚠️', className: 'warning' },
-                    info: { icon: '🔄', className: 'info' }
+                    info: { icon: 'ℹ️', className: 'info' }
                 };
+
+                // Play sound if provided
+                if (soundType) {
+                    playSound(soundType);
+                }
 
                 const config = types[type] || types.info;
                 const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
@@ -1280,40 +1265,58 @@
 
                             showDebug('✅ Login successful!', 'success');
                             
+                            // ─── TOAST WITH SUCCESS SOUND ───
                             showCustomToast(
                                 '🎉 Login Successful',
                                 `Welcome back! <span class="highlight">${phone}</span> is now connected.`,
+                                'success',
+                                5000,
                                 'success'
                             );
                             
                             return { success: true, token: token };
                         } else {
                             showDebug('❌ Token not found', 'error');
+                            
+                            // ─── TOAST WITH ERROR SOUND ───
                             showCustomToast(
                                 '❌ Login Failed',
                                 'Token not found in response. Please try again.',
+                                'error',
+                                5000,
                                 'error'
                             );
+                            
                             return { success: false, msg: 'Token not found in response' };
                         }
                     } else {
                         const errorMsg = data.msg || data.message || 'Login failed';
                         showDebug(`❌ ${errorMsg}`, 'error');
+                        
+                        // ─── TOAST WITH ERROR SOUND ───
                         showCustomToast(
                             '❌ Login Failed',
                             `${errorMsg}. Please check your credentials.`,
+                            'error',
+                            5000,
                             'error'
                         );
+                        
                         return { success: false, msg: errorMsg };
                     }
                 } catch (e) {
                     console.error('Login error:', e);
                     showDebug(`❌ Error: ${e.message}`, 'error');
+                    
+                    // ─── TOAST WITH ERROR SOUND ───
                     showCustomToast(
                         '🌐 Network Error',
                         `Unable to connect: ${e.message}. Please check your internet.`,
+                        'error',
+                        5000,
                         'error'
                     );
+                    
                     return { success: false, msg: e.message || 'Network error' };
                 }
             }
@@ -1716,9 +1719,12 @@
                 await apiGetUserInfo();
                 updateUI();
                 
+                // ─── TOAST WITH SUCCESS SOUND ───
                 showCustomToast(
                     '💰 Balance Updated',
                     `Your current balance is <span class="highlight">₹${formatNumber(state.balance)}</span>`,
+                    'success',
+                    4000,
                     'success'
                 );
             }
@@ -1734,6 +1740,8 @@
                     showCustomToast(
                         '❌ Validation Error',
                         'Name, Account Number and IFSC are required!',
+                        'error',
+                        5000,
                         'error'
                     );
                     return;
@@ -1751,18 +1759,19 @@
                     showCustomToast(
                         '✅ Card Added',
                         `Bank card for <span class="highlight">${name}</span> added successfully!`,
+                        'success',
+                        5000,
                         'success'
                     );
                     addCardForm.classList.add('hidden');
                     toggleAddCardBtn.textContent = '➕ Add Card';
                     await loadAllData();
-                    // Reset countdown after manual action
-                    state.countdown = 5;
-                    countdownTimer.textContent = '5';
                 } else {
                     showCustomToast(
                         '❌ Add Card Failed',
                         result.msg || 'Failed to add bank card',
+                        'error',
+                        5000,
                         'error'
                     );
                 }
@@ -1777,16 +1786,17 @@
                     showCustomToast(
                         '✅ Card Deleted',
                         `Bank card ID <span class="highlight">${cardId}</span> deleted successfully!`,
-                        'success'
+                        'success',
+                        5000,
+                        'delete'
                     );
                     await loadAllData();
-                    // Reset countdown after manual action
-                    state.countdown = 5;
-                    countdownTimer.textContent = '5';
                 } else {
                     showCustomToast(
                         '❌ Delete Failed',
                         result.msg || 'Failed to delete card',
+                        'error',
+                        5000,
                         'error'
                     );
                 }
@@ -1800,6 +1810,8 @@
                     showCustomToast(
                         '❌ Selection Error',
                         'Please select a bank card first!',
+                        'error',
+                        5000,
                         'error'
                     );
                     return;
@@ -1809,15 +1821,20 @@
                     showCustomToast(
                         '❌ Amount Error',
                         'Please enter a valid amount!',
+                        'error',
+                        5000,
                         'error'
                     );
                     return;
                 }
 
+                // Check balance
                 if (state.balance !== null && amount > state.balance) {
                     showCustomToast(
                         '❌ Insufficient Balance',
                         `Available balance: <span class="highlight">₹${formatNumber(state.balance)}</span>. Please enter a lower amount.`,
+                        'error',
+                        5000,
                         'error'
                     );
                     return;
@@ -1832,20 +1849,22 @@
                 submitWithdrawBtn.disabled = false;
 
                 if (result.success) {
+                    // ─── TOAST WITH SUCCESS SOUND ───
                     showCustomToast(
                         '💸 Withdrawal Successful',
                         `₹<span class="highlight">${amount}</span> has been withdrawn to your bank account!`,
+                        'success',
+                        5000,
                         'success'
                     );
                     await loadAllData();
                     withdrawAmount.value = '';
-                    // Reset countdown after manual action
-                    state.countdown = 5;
-                    countdownTimer.textContent = '5';
                 } else {
                     showCustomToast(
                         '❌ Withdrawal Failed',
                         result.msg || 'Failed to process withdrawal',
+                        'error',
+                        5000,
                         'error'
                     );
                 }
@@ -1857,6 +1876,8 @@
                     showCustomToast(
                         '❌ Invalid Phone',
                         'Please enter a valid 10-digit phone number!',
+                        'error',
+                        5000,
                         'error'
                     );
                     return;
@@ -1872,17 +1893,10 @@
 
                 if (result.success) {
                     await loadAllData();
-                    // Start auto-reload after successful login
-                    if (state.autoReloadEnabled) {
-                        startAutoReload();
-                    }
                 }
             }
 
             function handleLogout() {
-                // Stop auto-reload on logout
-                stopAutoReload();
-                
                 state.token = null;
                 state.phone = null;
                 state.userData = null;
@@ -1908,7 +1922,8 @@
                 showCustomToast(
                     '👋 Logged Out',
                     'You have been successfully logged out.',
-                    'info'
+                    'info',
+                    4000
                 );
             }
 
@@ -1954,17 +1969,13 @@
                     state.isLoggedIn = true;
                     phoneInput.value = savedPhone;
                     showDebug('🔄 Session restored', 'success');
-                    loadAllData().then(() => {
-                        // Start auto-reload after session restore
-                        if (state.autoReloadEnabled) {
-                            startAutoReload();
-                        }
-                    });
+                    loadAllData();
                     
                     showCustomToast(
                         '🔄 Session Restored',
                         `Welcome back, <span class="highlight">${savedPhone}</span>!`,
-                        'info'
+                        'info',
+                        4000
                     );
                     
                     return true;
@@ -1977,7 +1988,6 @@
                 loginBtn.addEventListener('click', handleLogin);
                 logoutBtn.addEventListener('click', handleLogout);
                 refreshBalanceBtn.addEventListener('click', refreshBalance);
-                toggleAutoReload.addEventListener('click', toggleAutoReloadHandler);
 
                 toggleAddCardBtn.addEventListener('click', toggleAddCardForm);
                 cancelAddCard.addEventListener('click', function() {
@@ -2002,11 +2012,6 @@
 
                 restoreSession();
                 updateUI();
-                
-                // Start auto-reload if logged in
-                if (state.isLoggedIn && state.autoReloadEnabled) {
-                    startAutoReload();
-                }
             }
 
             if (document.readyState === 'loading') {
