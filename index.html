@@ -975,9 +975,9 @@
                                 <button class="btn-sm quick-amount" data-amount="100">₹100</button>
                                 <button class="btn-sm quick-amount" data-amount="200">₹200</button>
                                 <button class="btn-sm quick-amount" data-amount="500">₹500</button>
-                                <button class="btn-sm quick-amount" data-amount="1000">₹1000</button>
-                                <button class="btn-sm quick-amount" data-amount="2000">₹2000</button>
-                                <button class="btn-sm quick-amount" data-amount="5000">₹5000</button>
+                                <button class="btn-sm quick-amount" data-amount="650">₹650</button>
+                                <button class="btn-sm quick-amount" data-amount="671">₹671</button>
+                                <button class="btn-sm quick-amount" data-amount="691">₹691</button>
                             </div>
 
                             <button class="btn btn-withdraw btn-full" id="submitWithdrawBtn">💸 Withdraw Now</button>
@@ -1589,7 +1589,6 @@
                     });
                 }
 
-                // Restore selected value if it exists
                 if (currentVal) {
                     const optionExists = Array.from(select.options).some(opt => opt.value === currentVal);
                     if (optionExists) {
@@ -1700,7 +1699,6 @@
                     cardsDisplay.innerHTML = '<span style="color:#6a7a9a;font-size:13px;">No bank cards added</span>';
                 }
 
-                // Update card select dropdown
                 updateCardSelect();
             }
 
@@ -1973,7 +1971,6 @@
                 if (withdrawForm.classList.contains('hidden')) {
                     withdrawForm.classList.remove('hidden');
                     toggleWithdrawBtn.textContent = '✖️ Close';
-                    // Force update card select dropdown
                     updateCardSelect();
                 } else {
                     withdrawForm.classList.add('hidden');
