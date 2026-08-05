@@ -1082,7 +1082,6 @@
                     soundIcon.textContent = '🔊';
                     soundStatus.textContent = 'ON';
                     soundStatus.className = 'sound-status on';
-                    // Test sound
                     playSound('success');
                 } else {
                     soundIcon.textContent = '🔇';
@@ -1091,7 +1090,7 @@
                 }
             });
 
-            // ─── CUSTOM TOAST SYSTEM WITH SOUND ───────────────
+            // ─── CUSTOM TOAST SYSTEM ───────────────────────────
             function showCustomToast(title, message, type, duration, soundType) {
                 const types = {
                     error: { icon: '❌', className: 'error' },
@@ -1100,7 +1099,6 @@
                     info: { icon: 'ℹ️', className: 'info' }
                 };
 
-                // Play sound if provided
                 if (soundType) {
                     playSound(soundType);
                 }
@@ -1265,7 +1263,6 @@
 
                             showDebug('✅ Login successful!', 'success');
                             
-                            // ─── TOAST WITH SUCCESS SOUND ───
                             showCustomToast(
                                 '🎉 Login Successful',
                                 `Welcome back! <span class="highlight">${phone}</span> is now connected.`,
@@ -1278,7 +1275,6 @@
                         } else {
                             showDebug('❌ Token not found', 'error');
                             
-                            // ─── TOAST WITH ERROR SOUND ───
                             showCustomToast(
                                 '❌ Login Failed',
                                 'Token not found in response. Please try again.',
@@ -1293,7 +1289,6 @@
                         const errorMsg = data.msg || data.message || 'Login failed';
                         showDebug(`❌ ${errorMsg}`, 'error');
                         
-                        // ─── TOAST WITH ERROR SOUND ───
                         showCustomToast(
                             '❌ Login Failed',
                             `${errorMsg}. Please check your credentials.`,
@@ -1308,7 +1303,6 @@
                     console.error('Login error:', e);
                     showDebug(`❌ Error: ${e.message}`, 'error');
                     
-                    // ─── TOAST WITH ERROR SOUND ───
                     showCustomToast(
                         '🌐 Network Error',
                         `Unable to connect: ${e.message}. Please check your internet.`,
@@ -1529,7 +1523,7 @@
                 }
             }
 
-            async function apiWithdraw(amount) {
+            async function apiWithdraw(amount, cardId) {
                 if (!state.token) return { success: false, msg: 'Not logged in' };
                 const cfg = getConfig();
                 const visitor = getVisitor();
@@ -1540,6 +1534,7 @@
                     channelId: cfg.channelId,
                     lang: 'en_US',
                     visitor: visitor,
+                    cardId: parseInt(cardId),
                     price: parseFloat(amount),
                     packageId: cfg.packageId,
                     packageInfo: cfg.packageInfo,
@@ -1558,9 +1553,9 @@
                 try {
                     const resp = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(payload) });
                     const data = await resp.json();
-                    console.log('Withdraw:', data);
+                    console.log('Withdraw Response:', data);
                     if (resp.status === 200 && (data.code === 0 || data.success === true)) {
-                        return { success: true };
+                        return { success: true, data: data };
                     } else {
                         return { success: false, msg: data.msg || 'Withdraw failed' };
                     }
@@ -1594,8 +1589,12 @@
                     });
                 }
 
+                // Restore selected value if it exists
                 if (currentVal) {
-                    select.value = currentVal;
+                    const optionExists = Array.from(select.options).some(opt => opt.value === currentVal);
+                    if (optionExists) {
+                        select.value = currentVal;
+                    }
                 }
                 updateSelectedCardDisplay();
             }
@@ -1701,6 +1700,7 @@
                     cardsDisplay.innerHTML = '<span style="color:#6a7a9a;font-size:13px;">No bank cards added</span>';
                 }
 
+                // Update card select dropdown
                 updateCardSelect();
             }
 
@@ -1719,7 +1719,6 @@
                 await apiGetUserInfo();
                 updateUI();
                 
-                // ─── TOAST WITH SUCCESS SOUND ───
                 showCustomToast(
                     '💰 Balance Updated',
                     `Your current balance is <span class="highlight">₹${formatNumber(state.balance)}</span>`,
@@ -1803,6 +1802,18 @@
             }
 
             async function handleWithdraw() {
+                // First check if cards exist
+                if (!state.cards || state.cards.length === 0) {
+                    showCustomToast(
+                        '❌ No Bank Card',
+                        'Please add a bank card first before withdrawing!',
+                        'error',
+                        5000,
+                        'error'
+                    );
+                    return;
+                }
+
                 const cardId = cardSelect.value;
                 const amount = parseFloat(withdrawAmount.value.trim());
 
@@ -1843,13 +1854,12 @@
                 submitWithdrawBtn.textContent = '⏳ Processing...';
                 submitWithdrawBtn.disabled = true;
 
-                const result = await apiWithdraw(amount);
+                const result = await apiWithdraw(amount, cardId);
 
                 submitWithdrawBtn.textContent = '💸 Withdraw Now';
                 submitWithdrawBtn.disabled = false;
 
                 if (result.success) {
-                    // ─── TOAST WITH SUCCESS SOUND ───
                     showCustomToast(
                         '💸 Withdrawal Successful',
                         `₹<span class="highlight">${amount}</span> has been withdrawn to your bank account!`,
@@ -1940,6 +1950,7 @@
                     cardEmail.value = f.toLowerCase() + l.toLowerCase() + '@gmail.com';
                     cardNumber.value = '';
                     ifscCode.value = 'MAHB0002009';
+                    addCardStatus.classList.add('hidden');
                 } else {
                     addCardForm.classList.add('hidden');
                     toggleAddCardBtn.textContent = '➕ Add Card';
@@ -1947,9 +1958,22 @@
             }
 
             function toggleWithdrawForm() {
+                // Check if cards exist before opening
+                if (!state.cards || state.cards.length === 0) {
+                    showCustomToast(
+                        '⚠️ No Bank Card',
+                        'Please add a bank card first before withdrawing!',
+                        'warning',
+                        4000,
+                        'error'
+                    );
+                    return;
+                }
+                
                 if (withdrawForm.classList.contains('hidden')) {
                     withdrawForm.classList.remove('hidden');
                     toggleWithdrawBtn.textContent = '✖️ Close';
+                    // Force update card select dropdown
                     updateCardSelect();
                 } else {
                     withdrawForm.classList.add('hidden');
