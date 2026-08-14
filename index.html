@@ -6,123 +6,187 @@
 <title>Profit Tracker</title>
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  font-family:Arial,sans-serif;min-height:100vh;
-  background:#080b12;color:#fff;padding:25px;
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
 }
-.container{max-width:900px;margin:auto}
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px}
-.title{font-size:26px;font-weight:800}
-.status{font-size:12px;color:#34d399}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-.card{background:#111722;border:1px solid #202938;border-radius:18px;padding:22px;min-height:140px}
-.icon{font-size:28px;margin-bottom:15px}
-.label{color:#8993a4;font-size:13px;margin-bottom:8px}
-.value{font-size:30px;font-weight:800}
-.profit{grid-column:1/-1}
-.footer{margin-top:20px;color:#667085;font-size:11px;text-align:center}
 
-/* Password screen */
-#loginScreen{
-  position:fixed;inset:0;z-index:9999;
-  display:flex;align-items:center;justify-content:center;
-  padding:20px;background:
-    radial-gradient(circle at top,#18213a 0,#080b12 55%);
-}
-.loginBox{
-  width:min(390px,100%);padding:30px;border-radius:22px;
-  background:#111722;border:1px solid #263246;
-  box-shadow:0 25px 80px rgba(0,0,0,.65);
-}
-.loginLogo{font-size:38px;text-align:center;margin-bottom:8px}
-.loginTitle{text-align:center;font-size:24px;font-weight:800;margin-bottom:7px}
-.loginSub{text-align:center;color:#8993a4;font-size:13px;margin-bottom:22px}
-#password{
-  width:100%;padding:14px 15px;border-radius:12px;
-  border:1px solid #303b4e;background:#080b12;color:#fff;
-  outline:none;font-size:16px;
-}
-#password:focus{border-color:#34d399;box-shadow:0 0 0 3px #34d39918}
-#loginBtn{
-  width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;
-  background:linear-gradient(135deg,#34d399,#059669);
-  color:#04130d;font-size:15px;font-weight:800;cursor:pointer;
-}
-#loginBtn:hover{filter:brightness(1.08)}
-#loginError{
-  display:none;color:#fb7185;text-align:center;font-size:12px;
-  margin-top:12px
-}
-.dev-tag{
-  margin-top:22px;
-  padding:12px 18px;
-  text-align:center;
-  border-radius:14px;
-  border:1px solid #a855f7;
+body{
+  font-family:Arial,sans-serif;
+  min-height:100vh;
+  background:#080b12;
   color:#fff;
-  font-size:14px;
+  padding:25px;
+}
+
+.container{
+  max-width:900px;
+  margin:auto;
+}
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+}
+
+.title{
+  font-size:26px;
+  font-weight:800;
+}
+
+.status{
+  font-size:12px;
+  color:#34d399;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:16px;
+}
+
+.card{
+  background:#111722;
+  border:1px solid #202938;
+  border-radius:18px;
+  padding:22px;
+  min-height:140px;
+  transition:0.25s;
+}
+
+.card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 12px 30px rgba(0,0,0,.35);
+}
+
+.icon{
+  font-size:28px;
+  margin-bottom:15px;
+}
+
+.label{
+  color:#8993a4;
+  font-size:13px;
+  margin-bottom:8px;
+}
+
+.value{
+  font-size:30px;
+  font-weight:800;
+}
+
+.profit{
+  grid-column:1/-1;
+}
+
+/* USER INVEST */
+.invest{
+  border-color:#1683ff55;
+}
+
+.invest .value{
+  color:#38bdf8;
+  text-shadow:0 0 15px #38bdf844;
+}
+
+/* DEV BY SANJU */
+.dev-footer{
+  width:max-content;
+  max-width:100%;
+  margin:22px auto 0;
+  padding:13px 28px;
+  border-radius:16px;
+
+  font-size:15px;
   font-weight:1000;
-  letter-spacing:1.5px;
-  background:linear-gradient(135deg,#24104a,#071d3f,#25102e);
+  letter-spacing:2px;
+  color:#fff;
+
+  background:
+    linear-gradient(
+      135deg,
+      #210b3b,
+      #071b3d,
+      #3b0b30,
+      #071f3a
+    );
+
+  border:1px solid #a855f7;
+
   box-shadow:
-    0 0 10px #a855f766,
-    0 0 28px #22d3ee33,
-    inset 0 1px 0 #ffffff35,
-    inset 0 -5px 12px #0008;
+    0 0 8px #a855f7,
+    0 0 22px #a855f766,
+    0 0 45px #22d3ee33,
+    inset 0 2px 0 rgba(255,255,255,.35),
+    inset 0 -7px 15px rgba(0,0,0,.7);
+
   text-shadow:
-    0 0 6px #fff,
-    0 0 14px #c084fc,
+    0 0 5px #fff,
+    0 0 12px #c084fc,
     2px 3px 0 #111827;
-  transform:perspective(500px) rotateX(2deg);
-  animation:devGlow 2s ease-in-out infinite alternate;
+
+  transform:perspective(500px) rotateX(3deg);
+
+  animation:devGlow 1.8s ease-in-out infinite alternate;
 }
-.dev-tag span:first-child{color:#fbbf24}
-.dev-tag span:last-child{color:#38bdf8}
+
 @keyframes devGlow{
-  from{box-shadow:0 0 10px #a855f766,0 0 24px #22d3ee22,inset 0 1px 0 #ffffff35}
-  to{box-shadow:0 0 18px #c084fc99,0 0 42px #22d3ee44,inset 0 1px 0 #ffffff55}
+  0%{
+    transform:perspective(500px) rotateX(3deg) scale(1);
+    filter:brightness(.95);
+    box-shadow:
+      0 0 8px #a855f7,
+      0 0 20px #a855f755,
+      0 0 35px #22d3ee22,
+      inset 0 2px 0 rgba(255,255,255,.3);
+  }
+
+  100%{
+    transform:perspective(500px) rotateX(3deg) scale(1.025);
+    filter:brightness(1.2);
+    box-shadow:
+      0 0 15px #c084fc,
+      0 0 32px #a855f799,
+      0 0 55px #22d3ee55,
+      inset 0 2px 0 rgba(255,255,255,.5);
+  }
 }
-.hidden{display:none!important}
+
+.footer{
+  margin-top:20px;
+  color:#667085;
+  font-size:11px;
+  text-align:center;
+}
 
 @media(max-width:600px){
-  body{padding:15px}
-  .grid{grid-template-columns:1fr}
-  .profit{grid-column:auto}
+
+  body{
+    padding:15px;
+  }
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+  .profit{
+    grid-column:auto;
+  }
+
+  .dev-footer{
+    font-size:13px;
+    padding:12px 20px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<!-- PASSWORD SCREEN -->
-<div id="loginScreen">
-  <div class="loginBox">
-    <div class="loginLogo">🔐</div>
-    <div class="loginTitle">Profit Tracker</div>
-    <div class="loginSub">Enter password to continue</div>
-
-    <form id="loginForm">
-      <input
-        id="password"
-        type="password"
-        placeholder="Enter password"
-        autocomplete="current-password"
-        autofocus
-      >
-      <button id="loginBtn" type="submit">Unlock Dashboard</button>
-    </form>
-
-    <div id="loginError">❌ Incorrect password</div>
-
-    <div class="dev-tag">
-      <span>⚡</span> DEV BY SANJU <span>⚡</span>
-    </div>
-  </div>
-</div>
-
-<!-- DASHBOARD -->
-<div class="container" id="dashboard" style="display:none">
+<div class="container">
 
   <div class="header">
     <div>
@@ -133,30 +197,35 @@ body{
 
   <div class="grid">
 
+    <!-- USERS -->
     <div class="card">
       <div class="icon">👥</div>
       <div class="label">Today Users</div>
       <div class="value" id="users">0</div>
     </div>
 
+    <!-- DEPOSIT -->
     <div class="card">
       <div class="icon">💰</div>
       <div class="label">Today Deposit</div>
       <div class="value" id="deposit">₹0.00</div>
     </div>
 
+    <!-- WITHDRAWAL -->
     <div class="card">
       <div class="icon">💸</div>
       <div class="label">Today Withdrawal</div>
       <div class="value" id="withdrawal">₹0.00</div>
     </div>
 
-    <div class="card">
+    <!-- USER INVEST -->
+    <div class="card invest">
       <div class="icon">💎</div>
       <div class="label">User Invest</div>
       <div class="value" id="invest">₹0.00</div>
     </div>
 
+    <!-- PROFIT -->
     <div class="card profit">
       <div class="icon">📈</div>
       <div class="label">Today Profit</div>
@@ -169,10 +238,14 @@ body{
     Last update: <span id="updated">Never</span>
   </div>
 
+  <!-- DEV TAG -->
+  <div class="dev-footer">
+    ⚡ DEV BY SANJU ⚡
+  </div>
+
 </div>
 
 <script>
-const PASSWORD = "731234";
 
 const WORKER_URL =
   "https://delicate-block-ad76profit-tracker.sanjubot100.workers.dev";
@@ -180,31 +253,11 @@ const WORKER_URL =
 const TRACKER_KEY =
   "PT-2026-X9K7-AB42";
 
-const loginScreen = document.getElementById("loginScreen");
-const dashboard = document.getElementById("dashboard");
-const loginForm = document.getElementById("loginForm");
-const passwordInput = document.getElementById("password");
-const loginError = document.getElementById("loginError");
-
-loginForm.addEventListener("submit", function(e){
-  e.preventDefault();
-
-  if(passwordInput.value === PASSWORD){
-    loginScreen.classList.add("hidden");
-    dashboard.style.display = "block";
-    loginError.style.display = "none";
-
-    loadStats();
-    setInterval(loadStats,10000);
-  }else{
-    loginError.style.display = "block";
-    passwordInput.value = "";
-    passwordInput.focus();
-  }
-});
 
 async function loadStats(){
+
   try{
+
     const response = await fetch(
       WORKER_URL + "/stats",
       {
@@ -222,36 +275,80 @@ async function loadStats(){
       throw new Error(data.error || "Failed");
     }
 
+    /* TODAY USERS */
+
+    const totalUsers =
+      Number(data.today_users || 0);
+
     document.getElementById("users").textContent =
-      data.today_users || 0;
+      totalUsers;
+
+
+    /* DEPOSIT */
 
     document.getElementById("deposit").textContent =
-      "₹" + Number(data.today_deposit || 0).toFixed(2);
+      "₹" + Number(
+        data.today_deposit || 0
+      ).toFixed(2);
+
+
+    /* WITHDRAWAL */
 
     document.getElementById("withdrawal").textContent =
-      "₹" + Number(data.today_withdrawal || 0).toFixed(2);
+      "₹" + Number(
+        data.today_withdrawal || 0
+      ).toFixed(2);
 
-    // User Invest = Today Users × 7.2
-    const totalUsers = Number(data.today_users || 0);
+
+    /* USER INVEST
+       Total Users × 7.2
+    */
+
+    const userInvest =
+      totalUsers * 7.2;
+
     document.getElementById("invest").textContent =
-      "₹" + (totalUsers * 7.2).toFixed(2);
+      "₹" + userInvest.toFixed(2);
+
+
+    /* PROFIT */
 
     document.getElementById("profit").textContent =
-      "₹" + Number(data.today_profit || 0).toFixed(2);
+      "₹" + Number(
+        data.today_profit || 0
+      ).toFixed(2);
+
+
+    /* STATUS */
 
     document.getElementById("status").textContent =
       "● Live";
 
+
+    /* LAST UPDATE */
+
     document.getElementById("updated").textContent =
       new Date().toLocaleTimeString("en-IN");
 
+
   }catch(error){
+
     console.error(error);
 
     document.getElementById("status").textContent =
       "● Connection error";
+
   }
 }
+
+
+// First load
+loadStats();
+
+
+// Update every 10 seconds
+setInterval(loadStats,10000);
+
 </script>
 
 </body>
