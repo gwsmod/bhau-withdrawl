@@ -54,6 +54,35 @@ body{
   display:none;color:#fb7185;text-align:center;font-size:12px;
   margin-top:12px
 }
+.dev-tag{
+  margin-top:22px;
+  padding:12px 18px;
+  text-align:center;
+  border-radius:14px;
+  border:1px solid #a855f7;
+  color:#fff;
+  font-size:14px;
+  font-weight:1000;
+  letter-spacing:1.5px;
+  background:linear-gradient(135deg,#24104a,#071d3f,#25102e);
+  box-shadow:
+    0 0 10px #a855f766,
+    0 0 28px #22d3ee33,
+    inset 0 1px 0 #ffffff35,
+    inset 0 -5px 12px #0008;
+  text-shadow:
+    0 0 6px #fff,
+    0 0 14px #c084fc,
+    2px 3px 0 #111827;
+  transform:perspective(500px) rotateX(2deg);
+  animation:devGlow 2s ease-in-out infinite alternate;
+}
+.dev-tag span:first-child{color:#fbbf24}
+.dev-tag span:last-child{color:#38bdf8}
+@keyframes devGlow{
+  from{box-shadow:0 0 10px #a855f766,0 0 24px #22d3ee22,inset 0 1px 0 #ffffff35}
+  to{box-shadow:0 0 18px #c084fc99,0 0 42px #22d3ee44,inset 0 1px 0 #ffffff55}
+}
 .hidden{display:none!important}
 
 @media(max-width:600px){
@@ -85,6 +114,10 @@ body{
     </form>
 
     <div id="loginError">❌ Incorrect password</div>
+
+    <div class="dev-tag">
+      <span>⚡</span> DEV BY SANJU <span>⚡</span>
+    </div>
   </div>
 </div>
 
@@ -116,6 +149,12 @@ body{
       <div class="icon">💸</div>
       <div class="label">Today Withdrawal</div>
       <div class="value" id="withdrawal">₹0.00</div>
+    </div>
+
+    <div class="card">
+      <div class="icon">💎</div>
+      <div class="label">User Invest</div>
+      <div class="value" id="invest">₹0.00</div>
     </div>
 
     <div class="card profit">
@@ -191,6 +230,11 @@ async function loadStats(){
 
     document.getElementById("withdrawal").textContent =
       "₹" + Number(data.today_withdrawal || 0).toFixed(2);
+
+    // User Invest = Today Users × 7.2
+    const totalUsers = Number(data.today_users || 0);
+    document.getElementById("invest").textContent =
+      "₹" + (totalUsers * 7.2).toFixed(2);
 
     document.getElementById("profit").textContent =
       "₹" + Number(data.today_profit || 0).toFixed(2);
