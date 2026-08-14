@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,6 +41,7 @@ body{
 .status{
   font-size:12px;
   color:#34d399;
+  margin-top:5px;
 }
 
 .grid{
@@ -54,7 +56,7 @@ body{
   border-radius:18px;
   padding:22px;
   min-height:140px;
-  transition:0.25s;
+  transition:.25s;
 }
 
 .card:hover{
@@ -82,7 +84,6 @@ body{
   grid-column:1/-1;
 }
 
-/* USER INVEST */
 .invest{
   border-color:#1683ff55;
 }
@@ -92,7 +93,6 @@ body{
   text-shadow:0 0 15px #38bdf844;
 }
 
-/* DEV BY SANJU */
 .dev-footer{
   width:max-content;
   max-width:100%;
@@ -134,9 +134,11 @@ body{
 }
 
 @keyframes devGlow{
+
   0%{
     transform:perspective(500px) rotateX(3deg) scale(1);
     filter:brightness(.95);
+
     box-shadow:
       0 0 8px #a855f7,
       0 0 20px #a855f755,
@@ -147,6 +149,7 @@ body{
   100%{
     transform:perspective(500px) rotateX(3deg) scale(1.025);
     filter:brightness(1.2);
+
     box-shadow:
       0 0 15px #c084fc,
       0 0 32px #a855f799,
@@ -176,6 +179,10 @@ body{
     grid-column:auto;
   }
 
+  .value{
+    font-size:26px;
+  }
+
   .dev-footer{
     font-size:13px;
     padding:12px 20px;
@@ -190,60 +197,115 @@ body{
 
   <div class="header">
     <div>
-      <div class="title">📊 Profit Tracker</div>
-      <div class="status" id="status">● Connecting...</div>
+
+      <div class="title">
+        📊 Profit Tracker
+      </div>
+
+      <div class="status" id="status">
+        ● Connecting...
+      </div>
+
     </div>
   </div>
+
 
   <div class="grid">
 
     <!-- USERS -->
     <div class="card">
+
       <div class="icon">👥</div>
-      <div class="label">Today Users</div>
-      <div class="value" id="users">0</div>
+
+      <div class="label">
+        Today Users
+      </div>
+
+      <div class="value" id="users">
+        0
+      </div>
+
     </div>
+
 
     <!-- DEPOSIT -->
     <div class="card">
+
       <div class="icon">💰</div>
-      <div class="label">Today Deposit</div>
-      <div class="value" id="deposit">₹0.00</div>
+
+      <div class="label">
+        Today Deposit
+      </div>
+
+      <div class="value" id="deposit">
+        ₹0.00
+      </div>
+
     </div>
+
 
     <!-- WITHDRAWAL -->
     <div class="card">
+
       <div class="icon">💸</div>
-      <div class="label">Today Withdrawal</div>
-      <div class="value" id="withdrawal">₹0.00</div>
+
+      <div class="label">
+        Today Withdrawal
+      </div>
+
+      <div class="value" id="withdrawal">
+        ₹0.00
+      </div>
+
     </div>
+
 
     <!-- USER INVEST -->
     <div class="card invest">
+
       <div class="icon">💎</div>
-      <div class="label">User Invest</div>
-      <div class="value" id="invest">₹0.00</div>
+
+      <div class="label">
+        User Invest
+      </div>
+
+      <div class="value" id="invest">
+        ₹0.00
+      </div>
+
     </div>
+
 
     <!-- PROFIT -->
     <div class="card profit">
+
       <div class="icon">📈</div>
-      <div class="label">Today Profit</div>
-      <div class="value" id="profit">₹0.00</div>
+
+      <div class="label">
+        Today Profit
+      </div>
+
+      <div class="value" id="profit">
+        ₹0.00
+      </div>
+
     </div>
 
   </div>
 
+
   <div class="footer">
-    Last update: <span id="updated">Never</span>
+    Last update:
+    <span id="updated">Never</span>
   </div>
 
-  <!-- DEV TAG -->
+
   <div class="dev-footer">
     ⚡ DEV BY SANJU ⚡
   </div>
 
 </div>
+
 
 <script>
 
@@ -262,94 +324,181 @@ async function loadStats(){
       WORKER_URL + "/stats",
       {
         method:"GET",
+
         headers:{
           "X-Tracker-Key":TRACKER_KEY
         },
+
         cache:"no-store"
       }
     );
 
-    const data = await response.json();
+
+    const data =
+      await response.json();
+
 
     if(!response.ok || !data.ok){
-      throw new Error(data.error || "Failed");
+
+      throw new Error(
+        data.error || "Failed"
+      );
+
     }
 
-    /* TODAY USERS */
+
+    /* ==========================
+       TODAY USERS
+    ========================== */
 
     const totalUsers =
       Number(data.today_users || 0);
+
 
     document.getElementById("users").textContent =
       totalUsers;
 
 
-    /* DEPOSIT */
+    /* ==========================
+       DEPOSIT
+
+       API amount includes bonus.
+
+       225 -> 200
+       335 -> 300
+
+       Other amounts stay unchanged.
+    ========================== */
+
+    const creditedDeposit =
+      Number(data.today_deposit || 0);
+
+
+    let mainDeposit =
+      creditedDeposit;
+
+
+    if(creditedDeposit === 225){
+
+      mainDeposit = 200;
+
+    }
+    else if(creditedDeposit === 335){
+
+      mainDeposit = 300;
+
+    }
+
 
     document.getElementById("deposit").textContent =
-      "₹" + Number(
-        data.today_deposit || 0
-      ).toFixed(2);
+      "₹" + mainDeposit.toFixed(2);
 
 
-    /* WITHDRAWAL */
+    /* ==========================
+       WITHDRAWAL
+    ========================== */
+
+    const withdrawalAmount =
+      Number(data.today_withdrawal || 0);
+
 
     document.getElementById("withdrawal").textContent =
-      "₹" + Number(
-        data.today_withdrawal || 0
-      ).toFixed(2);
+      "₹" + withdrawalAmount.toFixed(2);
 
 
-    /* USER INVEST
-       Total Users × 7.2
-    */
+    /* ==========================
+       USER INVEST
+    ========================== */
 
     const userInvest =
       totalUsers * 7.2;
+
 
     document.getElementById("invest").textContent =
       "₹" + userInvest.toFixed(2);
 
 
-    /* PROFIT */
+    /* ==========================
+       PROFIT
+
+       Withdrawal - Main Deposit
+
+       Negative = ₹0.00
+    ========================== */
+
+    const profit =
+      Math.max(
+        0,
+        withdrawalAmount - mainDeposit
+      );
+
 
     document.getElementById("profit").textContent =
-      "₹" + Number(
-        data.today_profit || 0
-      ).toFixed(2);
+      "₹" + profit.toFixed(2);
 
 
-    /* STATUS */
+    /* ==========================
+       STATUS
+    ========================== */
 
-    document.getElementById("status").textContent =
+    const status =
+      document.getElementById("status");
+
+
+    status.textContent =
       "● Live";
 
+    status.style.color =
+      "#34d399";
 
-    /* LAST UPDATE */
+
+    /* ==========================
+       LAST UPDATE
+    ========================== */
 
     document.getElementById("updated").textContent =
-      new Date().toLocaleTimeString("en-IN");
+      new Date().toLocaleTimeString(
+        "en-IN",
+        {
+          hour:"2-digit",
+          minute:"2-digit",
+          second:"2-digit"
+        }
+      );
 
 
   }catch(error){
 
     console.error(error);
 
-    document.getElementById("status").textContent =
+
+    const status =
+      document.getElementById("status");
+
+
+    status.textContent =
       "● Connection error";
 
+    status.style.color =
+      "#ef4444";
+
   }
+
 }
 
 
-// First load
+/* FIRST LOAD */
 loadStats();
 
 
-// Update every 10 seconds
-setInterval(loadStats,10000);
+/* AUTO UPDATE EVERY 10 SECONDS */
+setInterval(
+  loadStats,
+  10000
+);
 
 </script>
 
 </body>
 </html>
+```
