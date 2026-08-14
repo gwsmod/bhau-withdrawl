@@ -1,503 +1,70 @@
-html
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Profit Tracker</title>
-
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>📊 Profit Tracker</title>
 <style>
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-}
-
-body{
-  font-family:Arial,sans-serif;
-  min-height:100vh;
-  background:#080b12;
-  color:#fff;
-  padding:25px;
-}
-
-.container{
-  max-width:900px;
-  margin:auto;
-}
-
-.header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:25px;
-}
-
-.title{
-  font-size:26px;
-  font-weight:800;
-}
-
-.status{
-  font-size:12px;
-  color:#34d399;
-  margin-top:5px;
-}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:16px;
-}
-
-.card{
-  background:#111722;
-  border:1px solid #202938;
-  border-radius:18px;
-  padding:22px;
-  min-height:140px;
-  transition:.25s;
-}
-
-.card:hover{
-  transform:translateY(-3px);
-  box-shadow:0 12px 30px rgba(0,0,0,.35);
-}
-
-.icon{
-  font-size:28px;
-  margin-bottom:15px;
-}
-
-.label{
-  color:#8993a4;
-  font-size:13px;
-  margin-bottom:8px;
-}
-
-.value{
-  font-size:30px;
-  font-weight:800;
-}
-
-.profit{
-  grid-column:1/-1;
-}
-
-.invest{
-  border-color:#1683ff55;
-}
-
-.invest .value{
-  color:#38bdf8;
-  text-shadow:0 0 15px #38bdf844;
-}
-
-.dev-footer{
-  width:max-content;
-  max-width:100%;
-  margin:22px auto 0;
-  padding:13px 28px;
-  border-radius:16px;
-
-  font-size:15px;
-  font-weight:1000;
-  letter-spacing:2px;
-  color:#fff;
-
-  background:
-    linear-gradient(
-      135deg,
-      #210b3b,
-      #071b3d,
-      #3b0b30,
-      #071f3a
-    );
-
-  border:1px solid #a855f7;
-
-  box-shadow:
-    0 0 8px #a855f7,
-    0 0 22px #a855f766,
-    0 0 45px #22d3ee33,
-    inset 0 2px 0 rgba(255,255,255,.35),
-    inset 0 -7px 15px rgba(0,0,0,.7);
-
-  text-shadow:
-    0 0 5px #fff,
-    0 0 12px #c084fc,
-    2px 3px 0 #111827;
-
-  transform:perspective(500px) rotateX(3deg);
-
-  animation:devGlow 1.8s ease-in-out infinite alternate;
-}
-
-@keyframes devGlow{
-
-  0%{
-    transform:perspective(500px) rotateX(3deg) scale(1);
-    filter:brightness(.95);
-
-    box-shadow:
-      0 0 8px #a855f7,
-      0 0 20px #a855f755,
-      0 0 35px #22d3ee22,
-      inset 0 2px 0 rgba(255,255,255,.3);
-  }
-
-  100%{
-    transform:perspective(500px) rotateX(3deg) scale(1.025);
-    filter:brightness(1.2);
-
-    box-shadow:
-      0 0 15px #c084fc,
-      0 0 32px #a855f799,
-      0 0 55px #22d3ee55,
-      inset 0 2px 0 rgba(255,255,255,.5);
-  }
-}
-
-.footer{
-  margin-top:20px;
-  color:#667085;
-  font-size:11px;
-  text-align:center;
-}
-
-@media(max-width:600px){
-
-  body{
-    padding:15px;
-  }
-
-  .grid{
-    grid-template-columns:1fr;
-  }
-
-  .profit{
-    grid-column:auto;
-  }
-
-  .value{
-    font-size:26px;
-  }
-
-  .dev-footer{
-    font-size:13px;
-    padding:12px 20px;
-  }
-}
+*{box-sizing:border-box}body{margin:0;padding:22px;font-family:Arial,sans-serif;color:#fff;background:radial-gradient(circle at 20% 0,#29205c,transparent 30%),radial-gradient(circle at 90% 10%,#123d55,transparent 28%),#03050d}.wrap{max-width:1050px;margin:auto}.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.title{font-size:30px;font-weight:1000;background:linear-gradient(90deg,#67e8f9,#a78bfa,#f472b6,#fbbf24);-webkit-background-clip:text;color:transparent;background-size:250%;animation:flow 5s infinite}.dev{font-size:12px;color:#9ca3af;margin-top:5px;letter-spacing:1px}.live{color:#4ade80;border:1px solid #22c55e66;background:#06140d;padding:9px 14px;border-radius:999px;font-size:12px;font-weight:900}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:7px;box-shadow:0 0 14px #22c55e;animation:pulse 1s infinite}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.card{padding:22px;min-height:150px;border-radius:21px;border:1px solid #ffffff16;background:linear-gradient(145deg,#121b2e,#050914);box-shadow:0 18px 50px #0008;transition:.2s}.card:hover{transform:translateY(-4px)}.icon{font-size:29px;margin-bottom:14px}.label{font-size:12px;color:#96a3b8;font-weight:800;letter-spacing:.6px}.value{margin-top:8px;font-size:31px;font-weight:1000}.users .value{color:#c4b5fd}.deposit .value{color:#4ade80}.withdraw .value{color:#fbbf24}.invest .value{color:#38bdf8}.d200 .value{color:#60a5fa}.d300 .value{color:#c084fc}.profit{grid-column:1/-1}.profit .value{font-size:45px}.positive{border-color:#22c55e66}.positive .value{color:#22c55e;text-shadow:0 0 24px #22c55e55}.negative{border-color:#ef444466}.negative .value{color:#ef4444}.zero .value{color:#d1d5db}.footer{margin-top:18px;padding:14px 18px;border:1px solid #ffffff12;border-radius:16px;background:#050711dd;color:#718096;font-size:11px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.green{color:#4ade80}.purple{color:#c084fc}@keyframes pulse{50%{transform:scale(1.3);opacity:.55}}@keyframes flow{50%{background-position:100%}}@media(max-width:650px){body{padding:12px}.grid{grid-template-columns:1fr}.profit{grid-column:auto}.title{font-size:24px}.value{font-size:28px}}
 </style>
 </head>
-
 <body>
+<div class="wrap">
+<div class="head"><div><div class="title">📊 Profit Tracker</div><div class="dev">⚡ DEV BY SANJU</div></div><div class="live"><span class="dot"></span><span id="status">LIVE</span></div></div>
 
-<div class="container">
-
-  <div class="header">
-    <div>
-
-      <div class="title">
-        📊 Profit Tracker
-      </div>
-
-      <div class="status" id="status">
-        ● Connecting...
-      </div>
-
-    </div>
-  </div>
-
-
-  <div class="grid">
-
-    <!-- USERS -->
-    <div class="card">
-
-      <div class="icon">👥</div>
-
-      <div class="label">
-        Today Users
-      </div>
-
-      <div class="value" id="users">
-        0
-      </div>
-
-    </div>
-
-
-    <!-- DEPOSIT -->
-    <div class="card">
-
-      <div class="icon">💰</div>
-
-      <div class="label">
-        Today Deposit
-      </div>
-
-      <div class="value" id="deposit">
-        ₹0.00
-      </div>
-
-    </div>
-
-
-    <!-- WITHDRAWAL -->
-    <div class="card">
-
-      <div class="icon">💸</div>
-
-      <div class="label">
-        Today Withdrawal
-      </div>
-
-      <div class="value" id="withdrawal">
-        ₹0.00
-      </div>
-
-    </div>
-
-
-    <!-- USER INVEST -->
-    <div class="card invest">
-
-      <div class="icon">💎</div>
-
-      <div class="label">
-        User Invest
-      </div>
-
-      <div class="value" id="invest">
-        ₹0.00
-      </div>
-
-    </div>
-
-
-    <!-- PROFIT -->
-    <div class="card profit">
-
-      <div class="icon">📈</div>
-
-      <div class="label">
-        Today Profit
-      </div>
-
-      <div class="value" id="profit">
-        ₹0.00
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <div class="footer">
-    Last update:
-    <span id="updated">Never</span>
-  </div>
-
-
-  <div class="dev-footer">
-    ⚡ DEV BY SANJU ⚡
-  </div>
-
+<div class="grid">
+<div class="card users"><div class="icon">👥</div><div class="label">TODAY USERS</div><div class="value" id="users">0</div></div>
+<div class="card deposit"><div class="icon">💰</div><div class="label">TODAY MAIN DEPOSIT</div><div class="value" id="deposit">₹0.00</div></div>
+<div class="card withdraw"><div class="icon">💸</div><div class="label">TODAY WITHDRAWAL</div><div class="value" id="withdrawal">₹0.00</div></div>
+<div class="card invest"><div class="icon">💎</div><div class="label">USER INVEST</div><div class="value" id="invest">₹0.00</div></div>
+<div class="card d200"><div class="icon">🟦</div><div class="label">₹200 DEPOSIT COUNT</div><div class="value" id="deposit200">0</div></div>
+<div class="card d300"><div class="icon">🟪</div><div class="label">₹300 DEPOSIT COUNT</div><div class="value" id="deposit300">0</div></div>
+<div class="card profit zero" id="profitCard"><div class="icon">📈</div><div class="label">TODAY PROFIT</div><div class="value" id="profit">₹0.00</div></div>
 </div>
 
+<div class="footer"><span class="purple">📅 12 AM RESET • ASIA/KOLKATA</span><span>Last update: <b id="updated">Never</b></span><span class="green">🛡 LIVE SYNC</span></div>
+</div>
 
 <script>
+const WORKER_URL="https://delicate-block-ad76profit-tracker.sanjubot100.workers.dev";
+const TRACKER_KEY="PT-2026-X9K7-AB42";
 
-const WORKER_URL =
-  "https://delicate-block-ad76profit-tracker.sanjubot100.workers.dev";
-
-const TRACKER_KEY =
-  "PT-2026-X9K7-AB42";
-
+function money(n){return "₹"+Number(n||0).toFixed(2)}
 
 async function loadStats(){
-
-  try{
-
-    const response = await fetch(
-      WORKER_URL + "/stats",
-      {
-        method:"GET",
-
-        headers:{
-          "X-Tracker-Key":TRACKER_KEY
-        },
-
-        cache:"no-store"
-      }
-    );
-
-
-    const data =
-      await response.json();
-
-
-    if(!response.ok || !data.ok){
-
-      throw new Error(
-        data.error || "Failed"
-      );
-
-    }
-
-
-    /* ==========================
-       TODAY USERS
-    ========================== */
-
-    const totalUsers =
-      Number(data.today_users || 0);
-
-
-    document.getElementById("users").textContent =
-      totalUsers;
-
-
-    /* ==========================
-       DEPOSIT
-
-       API amount includes bonus.
-
-       225 -> 200
-       335 -> 300
-
-       Other amounts stay unchanged.
-    ========================== */
-
-    const creditedDeposit =
-      Number(data.today_deposit || 0);
-
-
-    let mainDeposit =
-      creditedDeposit;
-
-
-    if(creditedDeposit === 225){
-
-      mainDeposit = 200;
-
-    }
-    else if(creditedDeposit === 335){
-
-      mainDeposit = 300;
-
-    }
-
-
-    document.getElementById("deposit").textContent =
-      "₹" + mainDeposit.toFixed(2);
-
-
-    /* ==========================
-       WITHDRAWAL
-    ========================== */
-
-    const withdrawalAmount =
-      Number(data.today_withdrawal || 0);
-
-
-    document.getElementById("withdrawal").textContent =
-      "₹" + withdrawalAmount.toFixed(2);
-
-
-    /* ==========================
-       USER INVEST
-    ========================== */
-
-    const userInvest =
-      totalUsers * 7.2;
-
-
-    document.getElementById("invest").textContent =
-      "₹" + userInvest.toFixed(2);
-
-
-    /* ==========================
-       PROFIT
-
-       Withdrawal - Main Deposit
-
-       Negative = ₹0.00
-    ========================== */
-
-    const profit =
-      Math.max(
-        0,
-        withdrawalAmount - mainDeposit
-      );
-
-
-    document.getElementById("profit").textContent =
-      "₹" + profit.toFixed(2);
-
-
-    /* ==========================
-       STATUS
-    ========================== */
-
-    const status =
-      document.getElementById("status");
-
-
-    status.textContent =
-      "● Live";
-
-    status.style.color =
-      "#34d399";
-
-
-    /* ==========================
-       LAST UPDATE
-    ========================== */
-
-    document.getElementById("updated").textContent =
-      new Date().toLocaleTimeString(
-        "en-IN",
-        {
-          hour:"2-digit",
-          minute:"2-digit",
-          second:"2-digit"
-        }
-      );
-
-
-  }catch(error){
-
-    console.error(error);
-
-
-    const status =
-      document.getElementById("status");
-
-
-    status.textContent =
-      "● Connection error";
-
-    status.style.color =
-      "#ef4444";
-
-  }
-
+ try{
+  const r=await fetch(WORKER_URL+"/stats",{method:"GET",headers:{"X-Tracker-Key":TRACKER_KEY},cache:"no-store"});
+  const d=await r.json();
+  if(!r.ok||!d.ok)throw new Error(d.error||"Stats failed");
+
+  const users=Number(d.today_users||0);
+  const deposit=Number(d.today_deposit||0);
+  const withdrawal=Number(d.today_withdrawal||0);
+  const profit=Math.max(0,withdrawal-deposit);
+
+  document.getElementById("users").textContent=users;
+  document.getElementById("deposit").textContent=money(deposit);
+  document.getElementById("withdrawal").textContent=money(withdrawal);
+  document.getElementById("invest").textContent=money(users*7.2);
+
+  document.getElementById("deposit200").textContent=Number(d.deposit_200_count||0);
+  document.getElementById("deposit300").textContent=Number(d.deposit_300_count||0);
+
+  const pc=document.getElementById("profitCard");
+  const pe=document.getElementById("profit");
+  pc.classList.remove("positive","negative","zero");
+  if(profit>0){pc.classList.add("positive");pe.textContent="+"+money(profit)}
+  else{pc.classList.add(profit<0?"negative":"zero");pe.textContent=money(profit)}
+
+  document.getElementById("status").textContent="LIVE";
+  document.getElementById("updated").textContent=new Date().toLocaleTimeString("en-IN");
+ }catch(e){
+  console.error(e);
+  document.getElementById("status").textContent="OFFLINE";
+ }
 }
-
-
-/* FIRST LOAD */
 loadStats();
-
-
-/* AUTO UPDATE EVERY 10 SECONDS */
-setInterval(
-  loadStats,
-  10000
-);
-
+setInterval(loadStats,10000);
 </script>
-
 </body>
 </html>
